@@ -1,31 +1,27 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "more-things-vanilla",
 	"version": "${version}",
-	"name": "Example Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "MoreThingsVanilla",
+	"description": "Adds vertical redstone components, a seat cushion, and the missing slabs and stairs.",
 	"authors": [
-		"Me!"
+		"tt23xrstudio"
 	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
 	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"icon": "assets/more-things-vanilla/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
+			"com.tt23xrstudio.MoreThingsVanilla"
 		],
 		"client": [
-			"com.example.client.ExampleModClient"
+			"com.tt23xrstudio.client.MoreThingsVanillaClient"
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+		"more_things_vanilla.mixins.json",
 		{
-			"config": "modid.client.mixins.json",
+			"config": "more_things_vanilla.client.mixins.json",
 			"environment": "client"
 		}
 	],
