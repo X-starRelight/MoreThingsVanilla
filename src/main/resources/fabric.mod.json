@@ -16,6 +16,9 @@
 		],
 		"client": [
 			"com.tt23xrstudio.client.MoreThingsVanillaClient"
+		],
+		"fabric-gametest": [
+			"com.tt23xrstudio.test.MtvGameTests"
 		]
 	},
 	"mixins": [

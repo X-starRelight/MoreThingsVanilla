@@ -20,6 +20,15 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+
+	runs {
+		gametest {
+			server()
+			property "fabric-api.gametest", "true"
+			property "fabric-api.gametest.report-file", "${projectDir}/build/gametest/report.xml"
+			runDir "run/gametest"
+		}
+	}
 }
 
 dependencies {
