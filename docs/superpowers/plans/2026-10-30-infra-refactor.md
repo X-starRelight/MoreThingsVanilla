@@ -10,6 +10,8 @@
 
 **范围说明（相对 设计.md 实现顺序第 1 步）：** 设计里的「方块注册框架」不在本计划内——注册辅助方法将随计划 2 的第一个方块一起落地（与其 gametest 一起做红绿循环），避免产生没有调用者的死代码。本计划交付：命名改造、gametest 基建、创造标签页 + 语言文件骨架。
 
+**工作分支：** Task 1 Step 4 创建 `feature/infra-refactor`，全部实现任务在该分支提交，完成后合回 `main`（用户已确认「原地功能分支」方案）。
+
 ---
 
 ## 已验证的环境事实（写入代码前已用 javap/源码核实，可直接信任）
@@ -81,6 +83,14 @@ git log --oneline
 ```
 
 Expected: status 无输出（干净）；log 显示 1 条提交 `chore: fabric example template baseline`
+
+- [ ] **Step 4: 创建功能分支（controller 追加的 workspace 设置）**
+
+```powershell
+git checkout -b feature/infra-refactor
+```
+
+Expected: 已切换到 `feature/infra-refactor` 分支；baseline 提交留在 `main`，后续全部任务的提交都落在本分支。
 
 ---
 
