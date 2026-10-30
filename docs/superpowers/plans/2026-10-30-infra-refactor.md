@@ -426,9 +426,12 @@ Expected: `BUILD SUCCESSFUL`
 $exit = $LASTEXITCODE
 $r = Get-Content build\gametest\report.xml -Raw -ErrorAction SilentlyContinue
 if (-not $r) { Get-Content build\gametest-run.log -Tail 60; throw '报告未生成，见 build\gametest-run.log 尾部输出' }
-if ($r -notmatch 'failures="[1-9]') { Write-Output $r; throw 'RED 未达成：报告中没有失败记录' }
+if ($r -notmatch 'mtv_game_tests_creative_tab_registered') { Write-Output $r; throw '测试未被发现' }
+if ($r -notmatch '<failure') { Write-Output $r; throw 'RED 未达成：报告中没有失败记录' }
 Write-Output "RED confirmed (gradle exit=$exit)"
 ```
+
+注意（Task 3 实测修正）：报告 XML 的实际格式是 `<testcase>...<failure message="..."/></testcase>` 元素，**没有** `failures="N"` 属性——判定必须检查 `<failure>` 元素是否存在。
 
 Expected: 输出 `RED confirmed`（gradle 退出码可能是 0 也可能是 1，以报告为准；报告缺失或无失败都算基建问题，先排查再继续。首次运行需生成测试世界，可能耗时 1-3 分钟，工具超时设 600000ms）
 
@@ -558,12 +561,16 @@ public final class MtvGameTests {
 - [ ] **Step 4: 运行 gametest，确认绿**
 
 ```powershell
+Remove-Item build\gametest\report.xml -ErrorAction SilentlyContinue
 .\gradlew.bat runGametest *> build\gametest-run.log
-if ($LASTEXITCODE -ne 0) { Get-Content build\gametest-run.log -Tail 60; throw "runGametest 退出码 $LASTEXITCODE" }
-$r = Get-Content build\gametest\report.xml -Raw
-if ($r -notmatch 'tests="[1-9]' -or $r -match 'failures="[1-9]') { Write-Output $r; throw '测试未通过或没有实际执行任何测试' }
-Write-Output 'GREEN confirmed'
+$r = Get-Content build\gametest\report.xml -Raw -ErrorAction SilentlyContinue
+if (-not $r) { Get-Content build\gametest-run.log -Tail 60; throw '报告未生成，见 build\gametest-run.log 尾部输出' }
+if ($r -notmatch 'mtv_game_tests_creative_tab_registered') { Write-Output $r; throw '测试未被发现' }
+if ($r -match '<failure') { Write-Output $r; throw 'GREEN 未达成：报告中存在失败记录' }
+Write-Output "GREEN confirmed (gradle exit=$LASTEXITCODE)"
 ```
+
+注意（Task 3 实测修正）：报告 XML 的实际格式是 `<testcase>...<failure message="..."/></testcase>` 元素，**没有** `failures="N"` 属性——判定必须检查 `<failure>` 元素是否存在。先删除旧报告再运行，避免读到上一轮的 RED 报告造成假 GREEN。gradle 退出码仅作参考，以报告为准。
 
 Expected: `GREEN confirmed`（首次构建含 runGametest 任务生成，超时设 600000ms）
 
