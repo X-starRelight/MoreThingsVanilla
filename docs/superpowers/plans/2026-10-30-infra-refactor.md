@@ -580,9 +580,48 @@ Expected: 提交成功
 
 ### Task 5: 全量验证与交付
 
-**Files:** 无新增改动
+**Files:**
+- Modify: `README.md`（模板示例文档改为本 Mod 说明——Task 2 质量评审补充：原计划无任务覆盖 README）
 
-- [ ] **Step 1: 全量构建**
+- [ ] **Step 1: 改名回归检查（评审补充）**
+
+```powershell
+git grep -nE 'modid|com\.example' -- src *.gradle
+```
+
+Expected: 无命中（`settings.gradle` 注释里的 "modid" 字样除外；若命中，顺手把该注释改为 `// Should match the mod id` 并随 Step 2 一起提交）
+
+- [ ] **Step 2: 重写 README（评审补充）**
+
+`README.md` 全文替换为：
+
+````markdown
+# MoreThingsVanilla
+
+Fabric Mod：在原版基础上添加竖直红石（粉/中继器/比较器）、坐垫，以及缺失材质的半砖与楼梯。
+
+- 设计文档：[`设计.md`](设计.md)
+- 实现计划：`docs/superpowers/plans/`
+
+## 构建
+
+```powershell
+.\gradlew.bat build
+```
+
+产物位于 `build/libs/`。运行开发客户端：`.\gradlew.bat runClient`；运行 gametest：`.\gradlew.bat runGametest`。
+
+## License
+
+CC0-1.0（见 [`LICENSE`](LICENSE)）
+````
+
+```powershell
+git add README.md
+git commit -m "docs: rewrite readme for MoreThingsVanilla"
+```
+
+- [ ] **Step 3: 全量构建**
 
 ```powershell
 .\gradlew.bat build
@@ -590,22 +629,22 @@ Expected: 提交成功
 
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 2: 仓库状态复核**
+- [ ] **Step 4: 客户端冒烟（必做——评审补充：`more_things_vanilla.client.mixins.json` 只有客户端启动时才会加载，构建期验证不到；写错包名/类名会运行时崩溃）**
+
+```powershell
+.\gradlew.bat runClient
+```
+
+Expected: 客户端能启动到主菜单、无崩溃；开发日志出现 `MoreThingsVanilla loaded`。进入创造模式可确认独立标签页「More Things Vanilla」（铁块图标，暂无物品），确认后正常关闭游戏。若客户端崩溃，优先检查 `more_things_vanilla.client.mixins.json` 的 package/类名与 `MtvClientMixin` 的注入目标。标签页在标签栏中的位置若不理想，记录下来在后续计划调整（需人眼确认，由控制器转达用户）。
+
+- [ ] **Step 5: 仓库状态复核**
 
 ```powershell
 git status --short
 git log --oneline
 ```
 
-Expected: status 干净；log 依次含 4 条提交：`chore: fabric example template baseline` → `refactor: rename ...` → `test(gametest): add ...` → `feat: register creative tab ...`
-
-- [ ] **Step 3:（可选，需要人眼确认时执行）启动客户端查看标签页**
-
-```powershell
-.\gradlew.bat runClient
-```
-
-Expected: 游戏内创造模式物品栏出现独立标签页「More Things Vanilla」（铁块图标，暂无物品）。标签页在标签栏中的位置若不理想，记录下来在后续计划调整。此步可交给用户手动完成。
+Expected: status 干净；log 共 6 条提交：`chore: fabric example template baseline` → `docs: record feature branch step ...` → `refactor: rename ...` → `test(gametest): add ...` → `feat: register creative tab ...` → `docs: rewrite readme ...`
 
 ---
 
@@ -616,4 +655,6 @@ Expected: 游戏内创造模式物品栏出现独立标签页「More Things Vani
 - [ ] assets 路径 `assets/more-things-vanilla/`，mixin 配置 `more_things_vanilla*.mixins.json` 已同步
 - [ ] 独立创造标签页已注册且 gametest 通过（`build/gametest/report.xml` 中 `tests>=1`、`failures="0"`）
 - [ ] `zh_cn`/`en_us` 语言文件存在
+- [ ] README 已从模板示例改为 MoreThingsVanilla 说明（Task 5 Step 2）
+- [ ] 客户端冒烟通过：runClient 启动到主菜单无崩溃（Task 5 Step 4）
 - [ ] 全部改动已提交、工作区干净
