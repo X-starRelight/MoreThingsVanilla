@@ -1,9 +1,18 @@
-# Example Mod
+# MoreThingsVanilla
 
-## Setup
+Fabric Mod：在原版基础上添加竖直红石（粉/中继器/比较器）、坐垫，以及缺失材质的半砖与楼梯。
 
-For setup instructions, please see the [Fabric Documentation page](https://docs.fabricmc.net/develop/getting-started/creating-a-project#setting-up) related to the IDE that you are using.
+- 设计文档：[`设计.md`](设计.md)
+- 实现计划：`docs/superpowers/plans/`
+
+## 构建
+
+```powershell
+.\gradlew.bat build
+```
+
+产物位于 `build/libs/`。运行开发客户端：`.\gradlew.bat runClient`；运行 gametest：`.\gradlew.bat runGametest`。
 
 ## License
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+CC0-1.0（见 [`LICENSE`](LICENSE)）
