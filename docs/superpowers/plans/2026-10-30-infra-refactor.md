@@ -698,6 +698,8 @@ Expected: status 干净；Task 1-5 为 10 条提交：`chore: fabric example tem
 
 **计划 2 移除约定：** 首个方块注册进 `TAB_ITEMS` 后删占位行；`hasAnyItems` 断言届时继续守护可见性（若误删导致页面又空，测试会红）。
 
+**人眼验证补充（用户确认标签页可见后）：** `zh_cn.json` 中 `itemGroup.more_things_vanilla` 原为英文占位 "More Things Vanilla"，中文界面下也显示英文。已改为用户拍板的「更多内容-原版」（en_us 保持英文），提交 `fix(lang): translate creative tab name to Chinese`。
+
 ---
 
 ## 验收清单（对照 设计.md）
