@@ -589,6 +589,7 @@ Expected: 提交成功
 
 **Files:**
 - Modify: `README.md`（模板示例文档改为本 Mod 说明——Task 2 质量评审补充：原计划无任务覆盖 README）
+- Modify: `src/main/java/com/tt23xrstudio/test/MtvGameTests.java`（补字面量 ID 断言——Task 4 质量评审补充：测试改用共享常量后失去独立钉死 ID 的能力，CREATIVE_TAB_KEY 路径若被改而 lang 键不跟，会静默显示原始键）
 
 - [ ] **Step 1: 改名回归检查（评审补充）**
 
@@ -596,9 +597,37 @@ Expected: 提交成功
 git grep -nE 'modid|com\.example' -- src *.gradle
 ```
 
-Expected: 无命中（`settings.gradle` 注释里的 "modid" 字样除外；若命中，顺手把该注释改为 `// Should match the mod id` 并随 Step 2 一起提交）
+Expected: 无命中（`settings.gradle` 注释里的 "modid" 字样除外；若命中，顺手把该注释改为 `// Should match the mod id` 并随 Step 3 一起提交）
 
-- [ ] **Step 2: 重写 README（评审补充）**
+- [ ] **Step 2: 测试补字面量 ID 断言（Task 4 评审补充）**
+
+在 `src/main/java/com/tt23xrstudio/test/MtvGameTests.java` 的 `creativeTabRegistered` 方法开头（`helper.assertTrue(...)` 之前）插入：
+
+```java
+		helper.assertValueEqual("more-things-vanilla:more_things_vanilla",
+				MoreThingsVanilla.CREATIVE_TAB_KEY.location().toString(), "creative tab id changed");
+```
+
+然后重跑 gametest 确认仍绿（先删旧报告）：
+
+```powershell
+Remove-Item build\gametest\report.xml -ErrorAction SilentlyContinue
+.\gradlew.bat runGametest *> build\gametest-run.log
+$r = Get-Content build\gametest\report.xml -Raw -ErrorAction SilentlyContinue
+if (-not $r) { Get-Content build\gametest-run.log -Tail 60; throw '报告未生成' }
+if ($r -notmatch 'mtv_game_tests_creative_tab_registered') { Write-Output $r; throw '测试未被发现' }
+if ($r -match '<failure') { Write-Output $r; throw 'GREEN 未达成：报告中存在失败记录' }
+Write-Output "GREEN confirmed (gradle exit=$LASTEXITCODE)"
+```
+
+Expected: `GREEN confirmed`（超时 900000ms）
+
+```powershell
+git add src/main/java/com/tt23xrstudio/test/MtvGameTests.java
+git commit -m "test(gametest): pin creative tab id literal"
+```
+
+- [ ] **Step 3: 重写 README（评审补充）**
 
 `README.md` 全文替换为：
 
@@ -628,7 +657,7 @@ git add README.md
 git commit -m "docs: rewrite readme for MoreThingsVanilla"
 ```
 
-- [ ] **Step 3: 全量构建**
+- [ ] **Step 4: 全量构建**
 
 ```powershell
 .\gradlew.bat build
@@ -636,7 +665,7 @@ git commit -m "docs: rewrite readme for MoreThingsVanilla"
 
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 4: 客户端冒烟（必做——评审补充：`more_things_vanilla.client.mixins.json` 只有客户端启动时才会加载，构建期验证不到；写错包名/类名会运行时崩溃）**
+- [ ] **Step 5: 客户端冒烟（必做——评审补充：`more_things_vanilla.client.mixins.json` 只有客户端启动时才会加载，构建期验证不到；写错包名/类名会运行时崩溃）**
 
 ```powershell
 .\gradlew.bat runClient
@@ -644,14 +673,14 @@ Expected: `BUILD SUCCESSFUL`
 
 Expected: 客户端能启动到主菜单、无崩溃；开发日志出现 `MoreThingsVanilla loaded`。进入创造模式可确认独立标签页「More Things Vanilla」（铁块图标，暂无物品），确认后正常关闭游戏。若客户端崩溃，优先检查 `more_things_vanilla.client.mixins.json` 的 package/类名与 `MtvClientMixin` 的注入目标。标签页在标签栏中的位置若不理想，记录下来在后续计划调整（需人眼确认，由控制器转达用户）。
 
-- [ ] **Step 5: 仓库状态复核**
+- [ ] **Step 6: 仓库状态复核**
 
 ```powershell
 git status --short
 git log --oneline
 ```
 
-Expected: status 干净；log 共 6 条提交：`chore: fabric example template baseline` → `docs: record feature branch step ...` → `refactor: rename ...` → `test(gametest): add ...` → `feat: register creative tab ...` → `docs: rewrite readme ...`
+Expected: status 干净；log 共 10 条提交：`chore: fabric example template baseline` → `docs: record feature branch step ...` → `refactor: rename ...` → `docs: expand task 5 ...` → `test(gametest): add ...` → `docs: fix gametest report verification ...` → `feat: register creative tab ...` → `docs: task 5 adds literal tab id assertion ...` → `test(gametest): pin creative tab id literal` → `docs: rewrite readme ...`
 
 ---
 
@@ -660,8 +689,9 @@ Expected: status 干净；log 共 6 条提交：`chore: fabric example template 
 - [ ] `fabric.mod.json`：id=`more-things-vanilla`、name=`MoreThingsVanilla`、entrypoints=`com.tt23xrstudio.*`
 - [ ] `gradle.properties`：group=`com.tt23xrstudio`
 - [ ] assets 路径 `assets/more-things-vanilla/`，mixin 配置 `more_things_vanilla*.mixins.json` 已同步
-- [ ] 独立创造标签页已注册且 gametest 通过（`build/gametest/report.xml` 中 `tests>=1`、`failures="0"`）
+- [ ] 独立创造标签页已注册且 gametest 通过（`build/gametest/report.xml` 中测试存在且无 `<failure>` 元素——报告无 `failures="N"` 属性，勿用属性判定）
 - [ ] `zh_cn`/`en_us` 语言文件存在
-- [ ] README 已从模板示例改为 MoreThingsVanilla 说明（Task 5 Step 2）
-- [ ] 客户端冒烟通过：runClient 启动到主菜单无崩溃（Task 5 Step 4）
+- [ ] README 已从模板示例改为 MoreThingsVanilla 说明（Task 5 Step 3）
+- [ ] 测试已补字面量 ID 断言（Task 5 Step 2）
+- [ ] 客户端冒烟通过：runClient 启动到主菜单无崩溃（Task 5 Step 5）
 - [ ] 全部改动已提交、工作区干净
