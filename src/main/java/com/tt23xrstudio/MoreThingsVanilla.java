@@ -15,6 +15,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
 import org.slf4j.Logger;
@@ -32,6 +33,9 @@ public final class MoreThingsVanilla implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// 占位：原版会隐藏空的 CATEGORY 创造标签页（CreativeModeTab.shouldDisplay()），
+		// 计划 2 注册首个方块后移除此行，TAB_ITEMS 将由真实内容接管
+		TAB_ITEMS.add(Items.IRON_BLOCK);
 		Registry.register(
 				BuiltInRegistries.CREATIVE_MODE_TAB,
 				CREATIVE_TAB_KEY,
