@@ -680,7 +680,23 @@ git status --short
 git log --oneline
 ```
 
-Expected: status 干净；log 共 10 条提交：`chore: fabric example template baseline` → `docs: record feature branch step ...` → `refactor: rename ...` → `docs: expand task 5 ...` → `test(gametest): add ...` → `docs: fix gametest report verification ...` → `feat: register creative tab ...` → `docs: task 5 adds literal tab id assertion ...` → `test(gametest): pin creative tab id literal` → `docs: rewrite readme ...`
+Expected: status 干净；Task 1-5 为 10 条提交：`chore: fabric example template baseline` → `docs: record feature branch step ...` → `refactor: rename ...` → `docs: expand task 5 ...` → `test(gametest): add ...` → `docs: fix gametest report verification ...` → `feat: register creative tab ...` → `docs: task 5 adds literal tab id assertion ...` → `test(gametest): pin creative tab id literal` → `docs: rewrite readme ...`（Task 6 之后再加 `feat: add iron block placeholder ...` 与其 docs 计录，共 12 条）
+
+---
+
+### Task 6: 标签页占位物品（Task 5 GUI 验证发现的缺口，用户拍板新增）
+
+**背景：** 原版 `CreativeModeTab.shouldDisplay()` = `type != CATEGORY || hasAnyItems()`——空的 CATEGORY 标签页在创造界面**不渲染**（字节码 + `CreativeModeInventoryScreen` 实证）。`TAB_ITEMS` 要到计划 2 才有真实内容，故临时挂原版铁块占位（与图标一致）。
+
+**Files:**
+- Modify: `src/main/java/com/tt23xrstudio/MoreThingsVanilla.java`（onInitialize 开头加占位行 + `Items` import）
+- Modify: `src/main/java/com/tt23xrstudio/test/MtvGameTests.java`（补 `hasAnyItems()` / `shouldDisplay()` 断言；gametest 无创造界面，需先 `buildContents(new ItemDisplayParameters(FeatureFlags.DEFAULT_FLAGS, true, helper.getLevel().registryAccess()))`）
+
+- [x] **Step 1: 测试加可见性断言（红）** — 确认失败消息 `creative tab has no display items`
+- [x] **Step 2: 加占位行（绿）** — `TAB_ITEMS.add(Items.IRON_BLOCK);`（带移除时机注释）
+- [x] **Step 3: gametest 绿 + 全量构建 + 提交** `feat: add iron block placeholder so creative tab displays`
+
+**计划 2 移除约定：** 首个方块注册进 `TAB_ITEMS` 后删占位行；`hasAnyItems` 断言届时继续守护可见性（若误删导致页面又空，测试会红）。
 
 ---
 
@@ -690,6 +706,7 @@ Expected: status 干净；log 共 10 条提交：`chore: fabric example template
 - [ ] `gradle.properties`：group=`com.tt23xrstudio`
 - [ ] assets 路径 `assets/more-things-vanilla/`，mixin 配置 `more_things_vanilla*.mixins.json` 已同步
 - [ ] 独立创造标签页已注册且 gametest 通过（`build/gametest/report.xml` 中测试存在且无 `<failure>` 元素——报告无 `failures="N"` 属性，勿用属性判定）
+- [ ] 标签页游戏内可见（`hasAnyItems`/`shouldDisplay` 断言绿 + 人眼确认；Task 6 占位物品）
 - [ ] `zh_cn`/`en_us` 语言文件存在
 - [ ] README 已从模板示例改为 MoreThingsVanilla 说明（Task 5 Step 3）
 - [ ] 测试已补字面量 ID 断言（Task 5 Step 2）
