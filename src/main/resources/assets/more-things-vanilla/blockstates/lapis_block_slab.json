@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "more-things-vanilla:block/lapis_block_slab"
+    },
+    "type=double": {
+      "model": "minecraft:block/lapis_block"
+    },
+    "type=top": {
+      "model": "more-things-vanilla:block/lapis_block_slab_top"
+    }
+  }
+}
