@@ -12,7 +12,7 @@ public final class MtvGameTests {
 
 	@GameTest
 	public void creativeTabRegistered(GameTestHelper helper) {
-		helper.assertValueEqual("more-things-vanilla:more_things_vanilla",
+		helper.assertValueEqual("more-things-vanilla:WRONG_ID",
 				MoreThingsVanilla.CREATIVE_TAB_KEY.identifier().toString(), "creative tab id changed");
 		helper.assertTrue(
 				BuiltInRegistries.CREATIVE_MODE_TAB.containsKey(MoreThingsVanilla.CREATIVE_TAB_KEY),
