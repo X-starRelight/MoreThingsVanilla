@@ -3,6 +3,8 @@ package com.tt23xrstudio;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.tt23xrstudio.block.MtvBlocks;
+
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 
@@ -15,7 +17,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
 import org.slf4j.Logger;
@@ -33,9 +34,6 @@ public final class MoreThingsVanilla implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// 占位：原版会隐藏空的 CATEGORY 创造标签页（CreativeModeTab.shouldDisplay()），
-		// 计划 2 注册首个方块后移除此行，TAB_ITEMS 将由真实内容接管
-		TAB_ITEMS.add(Items.IRON_BLOCK);
 		Registry.register(
 				BuiltInRegistries.CREATIVE_MODE_TAB,
 				CREATIVE_TAB_KEY,
@@ -46,6 +44,8 @@ public final class MoreThingsVanilla implements ModInitializer {
 						.displayItems((context, output) -> TAB_ITEMS.forEach(output::accept))
 						.build()
 		);
+		// 计划 2 的半砖/楼梯（占位铁块已随首个真实方块移除，见计划 1 Task 6 约定）
+		MtvBlocks.registerAll();
 		LOGGER.info("MoreThingsVanilla loaded");
 	}
 
