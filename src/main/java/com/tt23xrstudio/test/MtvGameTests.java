@@ -73,11 +73,14 @@ public final class MtvGameTests {
 			helper.assertTrue(BuiltInRegistries.ITEM.containsKey(id), "item not registered: " + id);
 		}
 		// 反向断言（计划 1 质量审查允许的补充）：防止注册了多余方块
-		helper.assertValueEqual(79, MtvBlocks.ALL.size(), "MtvBlocks.ALL size != 79");
+		int expectedCount = ALL_NEW_BLOCK_IDS.length;
+		helper.assertValueEqual(expectedCount, MtvBlocks.ALL.size(),
+				"MtvBlocks.ALL size != " + expectedCount);
 		long namespaceCount = BuiltInRegistries.BLOCK.keySet().stream()
 				.filter(key -> MoreThingsVanilla.MOD_ID.equals(key.getNamespace()))
 				.count();
-		helper.assertValueEqual(79, (int) namespaceCount, "registered block count in mod namespace != 79");
+		helper.assertValueEqual(expectedCount, (int) namespaceCount,
+				"registered block count in mod namespace != " + expectedCount);
 		helper.succeed();
 	}
 
@@ -107,31 +110,50 @@ public final class MtvGameTests {
 		FlammableBlockRegistry registry = FlammableBlockRegistry.getDefaultInstance();
 		FlammableBlockRegistry.Entry slab = registry.get(BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_wool_slab")));
 		FlammableBlockRegistry.Entry stairs = registry.get(BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("brown_wool_stairs")));
+		String slabActual = slab == null ? "null" : slab.getIgniteOdds() + "/" + slab.getBurnOdds();
+		String stairsActual = stairs == null ? "null" : stairs.getIgniteOdds() + "/" + stairs.getBurnOdds();
 		helper.assertTrue(slab != null && slab.getIgniteOdds() == 30 && slab.getBurnOdds() == 60,
-				"white_wool_slab flammability != vanilla wool (30, 60)");
+				"white_wool_slab flammability " + slabActual + " != vanilla wool (30, 60)");
 		helper.assertTrue(stairs != null && stairs.getIgniteOdds() == 30 && stairs.getBurnOdds() == 60,
-				"brown_wool_stairs flammability != vanilla wool (30, 60)");
+				"brown_wool_stairs flammability " + stairsActual + " != vanilla wool (30, 60)");
 		helper.succeed();
 	}
 
 	@GameTest
 	public void blocksInTags(GameTestHelper helper) {
 		TagKey<Block> woolSlabs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "wool_slabs"));
+		TagKey<Block> woolStairs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "wool_stairs"));
 		TagKey<Block> concreteSlabs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "concrete_slabs"));
 		TagKey<Block> concreteStairs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "concrete_stairs"));
 		TagKey<Block> pickaxe = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "mineable/pickaxe"));
+		TagKey<Block> needsStoneTool = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "needs_stone_tool"));
+		TagKey<Block> needsIronTool = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "needs_iron_tool"));
+		TagKey<Block> needsDiamondTool = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "needs_diamond_tool"));
 		BlockPos woolPos = new BlockPos(1, 1, 1);
 		BlockPos concreteSlabPos = new BlockPos(2, 1, 1);
 		BlockPos concreteStairsPos = new BlockPos(4, 1, 1);
 		BlockPos ironPos = new BlockPos(3, 1, 1);
+		BlockPos woolStairsPos = new BlockPos(5, 1, 1);
+		BlockPos netheritePos = new BlockPos(6, 1, 1);
+		BlockPos diamondPos = new BlockPos(7, 1, 1);
 		helper.setBlock(woolPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_wool_slab")));
 		helper.setBlock(concreteSlabPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_concrete_slab")));
 		helper.setBlock(concreteStairsPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_concrete_stairs")));
 		helper.setBlock(ironPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("iron_block_slab")));
+		helper.setBlock(woolStairsPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("brown_wool_stairs")));
+		helper.setBlock(netheritePos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("netherite_block_slab")));
+		helper.setBlock(diamondPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("diamond_block_slab")));
 		helper.assertBlockTag(woolSlabs, woolPos);
+		helper.assertBlockTag(woolStairs, woolStairsPos);
 		helper.assertBlockTag(concreteSlabs, concreteSlabPos);
 		helper.assertBlockTag(concreteStairs, concreteStairsPos);
 		helper.assertBlockTag(pickaxe, ironPos);
+		helper.assertBlockTag(needsStoneTool, ironPos);
+		helper.assertBlockTag(needsIronTool, diamondPos);
+		helper.assertBlockTag(needsDiamondTool, netheritePos);
+		// 负断言：羊毛族方块不进 mineable/pickaxe（羊毛用剪刀，不属于镐可挖掘）
+		helper.assertFalse(helper.getBlockState(woolPos).is(pickaxe),
+				"white_wool_slab unexpectedly in minecraft:mineable/pickaxe");
 		helper.succeed();
 	}
 }
