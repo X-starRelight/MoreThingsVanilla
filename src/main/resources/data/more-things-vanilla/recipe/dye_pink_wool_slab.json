@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "group": "wool_slabs",
+  "ingredients": [
+    "minecraft:pink_dye",
+    [
+      "more-things-vanilla:white_wool_slab",
+      "more-things-vanilla:orange_wool_slab",
+      "more-things-vanilla:magenta_wool_slab",
+      "more-things-vanilla:light_blue_wool_slab",
+      "more-things-vanilla:yellow_wool_slab",
+      "more-things-vanilla:lime_wool_slab",
+      "more-things-vanilla:gray_wool_slab",
+      "more-things-vanilla:light_gray_wool_slab",
+      "more-things-vanilla:cyan_wool_slab",
+      "more-things-vanilla:purple_wool_slab",
+      "more-things-vanilla:blue_wool_slab",
+      "more-things-vanilla:brown_wool_slab",
+      "more-things-vanilla:green_wool_slab",
+      "more-things-vanilla:red_wool_slab",
+      "more-things-vanilla:black_wool_slab"
+    ]
+  ],
+  "result": {
+    "id": "more-things-vanilla:pink_wool_slab"
+  }
+}

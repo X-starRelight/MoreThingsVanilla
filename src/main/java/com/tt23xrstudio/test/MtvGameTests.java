@@ -10,11 +10,17 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.block.Block;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public final class MtvGameTests {
 
@@ -154,6 +160,23 @@ public final class MtvGameTests {
 		// 负断言：羊毛族方块不进 mineable/pickaxe（羊毛用剪刀，不属于镐可挖掘）
 		helper.assertFalse(helper.getBlockState(woolPos).is(pickaxe),
 				"white_wool_slab unexpectedly in minecraft:mineable/pickaxe");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void recipesLoaded(GameTestHelper helper) {
+		// 每个方块至少一条合成配方（手写或 26.4 抽取，配方 id = 方块 id）
+		List<String> recipeIds = new ArrayList<>(Arrays.asList(ALL_NEW_BLOCK_IDS));
+		// 额外抽取/手写的代表性配方（id = 文件名）
+		recipeIds.add("dye_white_wool_slab");
+		recipeIds.add("white_concrete_slab_from_white_concrete_stonecutting");
+		recipeIds.add("smooth_stone_stairs_from_smooth_stone_stonecutting");
+		for (String path : recipeIds) {
+			ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, MoreThingsVanilla.id(path));
+			helper.assertTrue(
+					helper.getLevel().getServer().getRecipeManager().byKey(key).isPresent(),
+					"recipe not loaded: " + MoreThingsVanilla.MOD_ID + ":" + path);
+		}
 		helper.succeed();
 	}
 }
