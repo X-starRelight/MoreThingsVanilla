@@ -423,6 +423,7 @@ Write-Output "OK: blockstates=$($counts.blockstate) models=$($counts.model) item
 ```
 
 > 上面两段 `powershell` 代码块拼起来是**同一个脚本文件**的连续内容（`Convert-Template` 只定义一次）。写盘前逐文件 `ConvertFrom-Json` 校验；`items/<id>.json` 的 `"minecraft:block/<tplId>"` 由第 5 条规则转到 `more-things-vanilla:block/<id>`，模型引用正确。
+> **实现时已修订（Task 2 执行记录）**：① 26.2 实际模板的 slab blockstate double 变体为 `"minecraft:block/smooth_stone_slab_double"`、模型另有 `"side": "..._slab_side"` 纹理 → 增加 `_double`/`_side` 两条字面替换规则（否则 39 半砖 double 形态与侧面纹理错误）；② 脚本文件本身存为 UTF-8 **带 BOM**（PS 5.1 对无 BOM 文件按 ANSI 解析，中文字面量会乱码），产出 JSON/lang 仍为无 BOM UTF-8。
 
 - [ ] **Step 2: 运行脚本并核对输出**
 

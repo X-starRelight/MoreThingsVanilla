@@ -1,13 +1,20 @@
 package com.tt23xrstudio.test;
 
 import com.tt23xrstudio.MoreThingsVanilla;
+import com.tt23xrstudio.block.MtvBlocks;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 
 public final class MtvGameTests {
 
@@ -65,6 +72,66 @@ public final class MtvGameTests {
 			helper.assertTrue(BuiltInRegistries.BLOCK.containsKey(id), "block not registered: " + id);
 			helper.assertTrue(BuiltInRegistries.ITEM.containsKey(id), "item not registered: " + id);
 		}
+		// 反向断言（计划 1 质量审查允许的补充）：防止注册了多余方块
+		helper.assertValueEqual(79, MtvBlocks.ALL.size(), "MtvBlocks.ALL size != 79");
+		long namespaceCount = BuiltInRegistries.BLOCK.keySet().stream()
+				.filter(key -> MoreThingsVanilla.MOD_ID.equals(key.getNamespace()))
+				.count();
+		helper.assertValueEqual(79, (int) namespaceCount, "registered block count in mod namespace != 79");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void blocksDropThemselves(GameTestHelper helper) {
+		Identifier slabId = MoreThingsVanilla.id("iron_block_slab");
+		Identifier stairsId = MoreThingsVanilla.id("smooth_stone_stairs");
+		Item slabItem = BuiltInRegistries.ITEM.getValue(slabId);
+		Item stairsItem = BuiltInRegistries.ITEM.getValue(stairsId);
+		BlockPos slabPos = new BlockPos(1, 1, 1);
+		BlockPos stairsPos = new BlockPos(3, 1, 1);
+		helper.setBlock(slabPos, BuiltInRegistries.BLOCK.getValue(slabId));
+		helper.setBlock(stairsPos, BuiltInRegistries.BLOCK.getValue(stairsId));
+		// 26.2 的 GameTestHelper.destroyBlock(pos) 实际调用 ServerLevel.destroyBlock(pos, false, null)，
+		// dropBlocks=false 不产生任何掉落物，战利品表断言必然失败（计划原文的 bug）。
+		// 这里改用 level.destroyBlock(..., true, null) 显式掉落，才能验证方块掉自己。
+		helper.getLevel().destroyBlock(helper.absolutePos(slabPos), true, null);
+		helper.getLevel().destroyBlock(helper.absolutePos(stairsPos), true, null);
+		helper.succeedWhen(() -> {
+			helper.assertItemEntityPresent(slabItem, slabPos, 1.0);
+			helper.assertItemEntityPresent(stairsItem, stairsPos, 1.0);
+		});
+	}
+
+	@GameTest
+	public void woolBlocksAreFlammable(GameTestHelper helper) {
+		FlammableBlockRegistry registry = FlammableBlockRegistry.getDefaultInstance();
+		FlammableBlockRegistry.Entry slab = registry.get(BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_wool_slab")));
+		FlammableBlockRegistry.Entry stairs = registry.get(BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("brown_wool_stairs")));
+		helper.assertTrue(slab != null && slab.getIgniteOdds() == 30 && slab.getBurnOdds() == 60,
+				"white_wool_slab flammability != vanilla wool (30, 60)");
+		helper.assertTrue(stairs != null && stairs.getIgniteOdds() == 30 && stairs.getBurnOdds() == 60,
+				"brown_wool_stairs flammability != vanilla wool (30, 60)");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void blocksInTags(GameTestHelper helper) {
+		TagKey<Block> woolSlabs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "wool_slabs"));
+		TagKey<Block> concreteSlabs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "concrete_slabs"));
+		TagKey<Block> concreteStairs = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "concrete_stairs"));
+		TagKey<Block> pickaxe = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("minecraft", "mineable/pickaxe"));
+		BlockPos woolPos = new BlockPos(1, 1, 1);
+		BlockPos concreteSlabPos = new BlockPos(2, 1, 1);
+		BlockPos concreteStairsPos = new BlockPos(4, 1, 1);
+		BlockPos ironPos = new BlockPos(3, 1, 1);
+		helper.setBlock(woolPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_wool_slab")));
+		helper.setBlock(concreteSlabPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_concrete_slab")));
+		helper.setBlock(concreteStairsPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("white_concrete_stairs")));
+		helper.setBlock(ironPos, BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("iron_block_slab")));
+		helper.assertBlockTag(woolSlabs, woolPos);
+		helper.assertBlockTag(concreteSlabs, concreteSlabPos);
+		helper.assertBlockTag(concreteStairs, concreteStairsPos);
+		helper.assertBlockTag(pickaxe, ironPos);
 		helper.succeed();
 	}
 }

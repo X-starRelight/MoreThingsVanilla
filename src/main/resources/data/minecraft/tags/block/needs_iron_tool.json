@@ -1,0 +1,11 @@
+{
+	"replace": false,
+	"values": [
+		"more-things-vanilla:diamond_block_slab",
+		"more-things-vanilla:diamond_block_stairs",
+		"more-things-vanilla:emerald_block_slab",
+		"more-things-vanilla:emerald_block_stairs",
+		"more-things-vanilla:gold_block_slab",
+		"more-things-vanilla:gold_block_stairs"
+	]
+}
