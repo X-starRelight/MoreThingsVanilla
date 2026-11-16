@@ -15,8 +15,10 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.FuelValues;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -178,6 +180,28 @@ public final class MtvGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * 羊毛系 32 个方块必须能当熔炉燃料，每个 300 tick（同木板，用户拍板）。
+	 * 原版羊毛本身不是熔炉燃料，此为本 mod 新增功能；矿物/混凝土系不得成为燃料（负断言）。
+	 */
+	@GameTest
+	public void woolBlocksAreFuels(GameTestHelper helper) {
+		FuelValues fuels = helper.getLevel().getServer().fuelValues();
+		int checked = 0;
+		for (String path : ALL_NEW_BLOCK_IDS) {
+			if (!path.endsWith("_wool_slab") && !path.endsWith("_wool_stairs")) continue;
+			ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id(path)));
+			helper.assertTrue(fuels.isFuel(stack), "wool block not a fuel: " + path);
+			helper.assertValueEqual(300, fuels.burnDuration(stack), "wrong burn duration: " + path);
+			checked++;
+		}
+		helper.assertValueEqual(32, checked, "wool fuel count");
+		// 负断言：矿物/混凝土系不是燃料
+		ItemStack iron = new ItemStack(BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id("iron_block_slab")));
+		helper.assertFalse(fuels.isFuel(iron), "iron_block_slab unexpectedly a fuel");
+		helper.succeed();
+	}
+
 	@GameTest
 	public void recipesLoaded(GameTestHelper helper) {
 		// 每个方块至少一条合成配方（手写或 26.4 抽取，配方 id = 方块 id）
@@ -186,6 +210,13 @@ public final class MtvGameTests {
 		recipeIds.add("dye_white_wool_slab");
 		recipeIds.add("white_concrete_slab_from_white_concrete_stonecutting");
 		recipeIds.add("smooth_stone_stairs_from_smooth_stone_stonecutting");
+		// 矿物系切石机 14 条（验收反馈拍板：半砖 1→2、楼梯 1:1，推翻计划原「矿物不加切石机」）
+		String[] mineralBases = {"iron_block", "gold_block", "redstone_block", "emerald_block",
+				"lapis_block", "diamond_block", "netherite_block"};
+		for (String base : mineralBases) {
+			recipeIds.add(base + "_slab_from_" + base + "_stonecutting");
+			recipeIds.add(base + "_stairs_from_" + base + "_stonecutting");
+		}
 		for (String path : recipeIds) {
 			ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, MoreThingsVanilla.id(path));
 			helper.assertTrue(

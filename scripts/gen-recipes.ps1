@@ -2,9 +2,10 @@
 	[string]$RefJar = "D:\minecraft\.minecraft\versions\26.4-snapshot-6-Fabric 0.20.0\26.4-snapshot-6-Fabric 0.20.0.jar",
 	[string]$ProjectRoot = (Split-Path $PSScriptRoot -Parent)
 )
-# 用途：生成 79 个方块的配方——手写 16 个矿物系/平滑石头配方，另从 26.4 jar 抽取 128 个羊毛/混凝土系配方。
+# 用途：生成 79 个方块的配方——手写 30 个矿物系/平滑石头配方（含矿物切石机 14 条），另从 26.4 jar 抽取 128 个羊毛/混凝土系配方。
 # 参考 jar：$RefJar 默认 26.4-snapshot-6-Fabric（26.4 快照）；矿物系/平滑石楼梯该版本不存在，天然不撞。
 # 格式：抽取文件沿用原版 2 空格缩进，手写部分为 TAB 缩进，两者混合属预期。
+# 矿物切石机比例（2026-11-16 验收反馈拍板，推翻计划原「矿物不加切石机」）：半砖 1→2、楼梯 1:1。
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $ns = 'more-things-vanilla'
@@ -108,6 +109,32 @@ $smoothSc = @'
 '@
 Write-Utf8Json (Join-Path $recipeDir 'smooth_stone_stairs_from_smooth_stone_stonecutting.json') ($smoothSc.Replace('@NS@', $ns))
 
+# 矿物系切石机（验收反馈拍板：半砖 1→2、楼梯 1:1；26.4 原版无此配方）
+$minSlabScTpl = @'
+{
+	"type": "minecraft:stonecutting",
+	"ingredient": "minecraft:@BASE@",
+	"result": {
+		"count": 2,
+		"id": "@NS@:@BASE@_slab"
+	}
+}
+'@
+$minStairsScTpl = @'
+{
+	"type": "minecraft:stonecutting",
+	"ingredient": "minecraft:@BASE@",
+	"result": {
+		"count": 1,
+		"id": "@NS@:@BASE@_stairs"
+	}
+}
+'@
+foreach ($base in $minerals) {
+	Write-Utf8Json (Join-Path $recipeDir "$base`_slab_from_$base`_stonecutting.json")   ($minSlabScTpl.Replace('@BASE@', $base).Replace('@NS@', $ns))
+	Write-Utf8Json (Join-Path $recipeDir "$base`_stairs_from_$base`_stonecutting.json") ($minStairsScTpl.Replace('@BASE@', $base).Replace('@NS@', $ns))
+}
+
 # ---- 3) 自校验：79 个方块每个都存在 result=我方 id 的配方（可合成性契约）----
 $covered = @{}
 foreach ($f in Get-ChildItem $recipeDir -Filter *.json) {
@@ -120,4 +147,4 @@ foreach ($f in Get-ChildItem $recipeDir -Filter *.json) {
 $missing = @($ids | Where-Object { -not $covered.ContainsKey($_) })
 if ($missing.Count -gt 0) { throw "no recipe producing: $($missing -join ', ')" }
 $total = (Get-ChildItem $recipeDir -Filter *.json).Count
-Write-Output ("OK: manual=16 extracted={0} total={1}" -f $extracted, $total)
+Write-Output ("OK: manual=30 extracted={0} total={1}" -f $extracted, $total)

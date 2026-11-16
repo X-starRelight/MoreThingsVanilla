@@ -1,12 +1,15 @@
 package com.tt23xrstudio.block;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import com.tt23xrstudio.MoreThingsVanilla;
 
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.FuelValueEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -34,6 +37,12 @@ public final class MtvBlocks {
 	private static final int WOOL_IGNITE_ODDS = 30;
 	private static final int WOOL_BURN_ODDS = 60;
 
+	/** 羊毛系熔炉燃料燃烧时间（tick），同木板；原版羊毛不是燃料，此为本 mod 新增（用户拍板）。 */
+	private static final int WOOL_FUEL_BURN_TIME = 300;
+
+	/** 羊毛系物品清单，供熔炉燃料事件使用。 */
+	private static final List<Item> woolFuelItems = new ArrayList<>();
+
 	private static final Block[] MINERAL_BASES = {
 			Blocks.IRON_BLOCK, Blocks.GOLD_BLOCK, Blocks.REDSTONE_BLOCK,
 			Blocks.EMERALD_BLOCK, Blocks.LAPIS_BLOCK, Blocks.DIAMOND_BLOCK,
@@ -54,6 +63,13 @@ public final class MtvBlocks {
 		for (Block base : MINERAL_BASES) registerStairs(base, false);
 		for (Block base : woolBases()) registerStairs(base, true);
 		for (Block base : concreteBases()) registerStairs(base, false);
+		// 熔炉燃料（验收反馈拍板）：羊毛系 32 个方块每个 300 tick（同木板）。
+		// 原版羊毛本身不是熔炉燃料，仅本 mod 的羊毛系半砖/楼梯可当燃料（矿物/混凝土系不注册）。
+		FuelValueEvents.BUILD.register((builder, context) -> {
+			for (Item item : woolFuelItems) {
+				builder.add(item, WOOL_FUEL_BURN_TIME);
+			}
+		});
 	}
 
 	private static void registerSlab(Block base, boolean flammable) {
@@ -86,6 +102,7 @@ public final class MtvBlocks {
 		ALL.put(path, block);
 		if (flammable) {
 			FlammableBlockRegistry.getDefaultInstance().add(block, WOOL_IGNITE_ODDS, WOOL_BURN_ODDS);
+			woolFuelItems.add(item);
 		}
 	}
 
