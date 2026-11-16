@@ -71,7 +71,7 @@
 - Modify: `src/main/java/com/tt23xrstudio/MoreThingsVanilla.java`
 - Test: `src/main/java/com/tt23xrstudio/test/MtvGameTests.java`
 
-- [ ] **Step 1: 写失败测试（注册断言）**
+- [x] **Step 1: 写失败测试（注册断言）**
 
 在 `MtvGameTests` 中新增常量与测试（完整代码，直接落盘）：
 
@@ -115,7 +115,7 @@
 
 新增 import：`net.minecraft.resources.Identifier`。
 
-- [ ] **Step 2: 跑 gametest 确认红**
+- [x] **Step 2: 跑 gametest 确认红**
 
 ```powershell
 Remove-Item build\gametest\report.xml -ErrorAction SilentlyContinue
@@ -124,7 +124,7 @@ Remove-Item build\gametest\report.xml -ErrorAction SilentlyContinue
 
 Expected: 报告 XML 存在且含 `<failure`，消息含 `block not registered: more-things-vanilla:iron_block_slab`。
 
-- [ ] **Step 3: 实现 MtvBlocks（完整代码）**
+- [x] **Step 3: 实现 MtvBlocks（完整代码）**
 
 `src/main/java/com/tt23xrstudio/block/MtvBlocks.java`：
 
@@ -237,7 +237,7 @@ public final class MtvBlocks {
 }
 ```
 
-- [ ] **Step 4: 接线 MoreThingsVanilla + 移除铁块占位**
+- [x] **Step 4: 接线 MoreThingsVanilla + 移除铁块占位**
 
 `onInitialize()` 中：删除占位两行注释 + `TAB_ITEMS.add(Items.IRON_BLOCK);`，在标签页注册之后加 `MtvBlocks.registerAll();`；删除 `import net.minecraft.world.item.Items;`（已无引用），新增 `import com.tt23xrstudio.block.MtvBlocks;`。改后方法体：
 
@@ -260,11 +260,11 @@ public final class MtvBlocks {
 	}
 ```
 
-- [ ] **Step 5: 跑 gametest 确认绿**
+- [x] **Step 5: 跑 gametest 确认绿**
 
 同 Step 2 命令。Expected: 报告存在、**无** `<failure>` 元素、gradle exit 0。既有 `creativeTabRegistered` 断言（hasAnyItems）此时由 79 个真实物品守护。
 
-- [ ] **Step 6: 编译全量 + 提交**
+- [x] **Step 6: 编译全量 + 提交**
 
 ```powershell
 .\gradlew.bat build
@@ -282,7 +282,7 @@ Expected: BUILD SUCCESSFUL；提交后 `git status --short` 干净。
 - Create: `scripts/gen-block-assets.ps1`
 - Create（脚本产出）: `assets/more-things-vanilla/blockstates/` 79 个、`models/block/` 198 个、`items/` 79 个、`lang/{zh_cn,en_us}.json` 全量重写
 
-- [ ] **Step 1: 写脚本**
+- [x] **Step 1: 写脚本**
 
 `scripts/gen-block-assets.ps1`（完整内容）。要点：模板从 26.2 jar 抽取（格式与运行版本一致）；替换按「最长优先 + 带引号精确匹配」；每个产出文件 `ConvertFrom-Json` 自校验；数量断言（blockstates=79、models=198、items=79、lang 每文件 79 条块条目 + 1 条 itemGroup）。
 
@@ -425,7 +425,7 @@ Write-Output "OK: blockstates=$($counts.blockstate) models=$($counts.model) item
 > 上面两段 `powershell` 代码块拼起来是**同一个脚本文件**的连续内容（`Convert-Template` 只定义一次）。写盘前逐文件 `ConvertFrom-Json` 校验；`items/<id>.json` 的 `"minecraft:block/<tplId>"` 由第 5 条规则转到 `more-things-vanilla:block/<id>`，模型引用正确。
 > **实现时已修订（Task 2 执行记录）**：① 26.2 实际模板的 slab blockstate double 变体为 `"minecraft:block/smooth_stone_slab_double"`、模型另有 `"side": "..._slab_side"` 纹理 → 增加 `_double`/`_side` 两条字面替换规则（否则 39 半砖 double 形态与侧面纹理错误）；② 脚本文件本身存为 UTF-8 **带 BOM**（PS 5.1 对无 BOM 文件按 ANSI 解析，中文字面量会乱码），产出 JSON/lang 仍为无 BOM UTF-8。
 
-- [ ] **Step 2: 运行脚本并核对输出**
+- [x] **Step 2: 运行脚本并核对输出**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gen-block-assets.ps1
@@ -448,7 +448,7 @@ Expected 要点：
 - zh：`"block.more-things-vanilla.black_wool_slab": "黑色羊毛半砖"`、`"block.more-things-vanilla.smooth_stone_stairs": "平滑石头楼梯"`
 - 两个 lang 文件均含 `itemGroup` 条目且 JSON 合法
 
-- [ ] **Step 3: 构建 + 提交**
+- [x] **Step 3: 构建 + 提交**
 
 ```powershell
 .\gradlew.bat build
@@ -467,7 +467,7 @@ Expected: BUILD SUCCESSFUL（processResources 打包新资源）。
 - Create: `scripts/gen-loot-tags.ps1`
 - Create（脚本产出）: `data/more-things-vanilla/loot_table/blocks/*.json`（79）、`data/minecraft/tags/block/`（wool_slabs、wool_stairs、concrete_slabs、concrete_stairs、mineable/pickaxe、命中的 needs_*_tool）
 
-- [ ] **Step 1: 写失败测试（掉落 / 可燃 / 标签）**
+- [x] **Step 1: 写失败测试（掉落 / 可燃 / 标签）**
 
 `MtvGameTests` 新增（import：`net.minecraft.tags.TagKey`、`net.fabricmc.fabric.api.registry.FlammableBlockRegistry`、`net.minecraft.world.item.crafting` 不需要、`net.minecraft.world.level.block.Block`、`net.minecraft.world.item.Item`、`net.minecraft.core.BlockPos`）：
 
@@ -526,7 +526,7 @@ Expected: BUILD SUCCESSFUL（processResources 打包新资源）。
 
 > `MoreThingsVanilla.id(...)` 返回 `Identifier`（计划 1 已有该工具方法）✓。若 `getValue` 对缺失 id 抛异常，`allBlocksRegistered` 已先行守护。
 
-- [ ] **Step 2: 跑 gametest 确认红**
+- [x] **Step 2: 跑 gametest 确认红**
 
 同 Task 1 Step 2 命令。Expected: 报告含 2 条新 `<failure>`：
 - `blocksDropThemselves` → 掉落物缺失（无战利品表）
@@ -534,7 +534,7 @@ Expected: BUILD SUCCESSFUL（processResources 打包新资源）。
 
 > 注：`woolBlocksAreFlammable` 此时**已是绿的**——可燃登记在 Task 1 的 `finish()` 里就写好了，本任务只为它补上回归守护（不作为红的判定条件）。
 
-- [ ] **Step 3: 写 gen-loot-tags.ps1**
+- [x] **Step 3: 写 gen-loot-tags.ps1**
 
 `scripts/gen-loot-tags.ps1`（完整代码，全部用字面 `.Replace`、逐文件 `ConvertFrom-Json` 校验）：
 
@@ -644,7 +644,7 @@ Write-Output 'OK: loot=79 tags written'
 
 > **预期标签产出**：`wool_slabs/wool_stairs/concrete_slabs/concrete_stairs` 各 16；`mineable/pickaxe.json` 含矿物 14 + 混凝土 32 + `smooth_stone_stairs`（若 `smooth_stone` 在原版 pickaxe 标签，26.2 实测在）≈47；`needs_*_tool.json` 按基块继承（iron/gold → needs_stone_tool，diamond/emerald/netherite → needs_iron_tool 等，以 jar 实际为准）；羊毛系不进任何 mineable（26.4 实测白羊毛半砖只在 wool_slabs）。
 
-- [ ] **Step 4: 运行脚本**
+- [x] **Step 4: 运行脚本**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gen-loot-tags.ps1
@@ -657,11 +657,11 @@ Get-Content src\main\resources\data\more-things-vanilla\loot_table\blocks\white_
 ```
 Expected: pickaxe 含 `more-things-vanilla:iron_block_slab`（无羊毛条目）；loot 含 `type=double → count 2` 结构（26.2 旧格式 `functions/block` 键）。
 
-- [ ] **Step 5: 跑 gametest 确认绿**
+- [x] **Step 5: 跑 gametest 确认绿**
 
 同 Task 1 Step 2 命令。Expected: 无 `<failure>`（此时 5 个测试全绿：`creativeTabRegistered`、`allBlocksRegistered`、`blocksDropThemselves`、`woolBlocksAreFlammable`、`blocksInTags`）。
 
-- [ ] **Step 6: 构建 + 提交**
+- [x] **Step 6: 构建 + 提交**
 
 ```powershell
 .\gradlew.bat build
@@ -678,7 +678,7 @@ git commit -m "feat: add loot tables and block tags for slabs and stairs"
 - Create: `scripts/gen-recipes.ps1`
 - Create（脚本产出）: `data/more-things-vanilla/recipe/*.json`
 
-- [ ] **Step 1: 写失败测试（配方加载）**
+- [x] **Step 1: 写失败测试（配方加载）**
 
 ```java
 	@GameTest
@@ -701,11 +701,11 @@ git commit -m "feat: add loot tables and block tags for slabs and stairs"
 
 新增 import：`java.util.List`、`java.util.ArrayList`、`java.util.Arrays`、`net.minecraft.world.item.crafting.Recipe`、`net.minecraft.resources.ResourceKey`、`net.minecraft.core.registries.Registries`（若尚无）。
 
-- [ ] **Step 2: 跑 gametest 确认红**
+- [x] **Step 2: 跑 gametest 确认红**
 
 同 Task 1 Step 2 命令。Expected: `<failure ...> recipe not loaded: more-things-vanilla:iron_block_slab`。
 
-- [ ] **Step 3: 写 gen-recipes.ps1**
+- [x] **Step 3: 写 gen-recipes.ps1**
 
 `scripts/gen-recipes.ps1`，三个职责（全部字面 `.Replace` + `ConvertFrom-Json` 校验）：
 
@@ -832,7 +832,7 @@ Write-Output ("OK: manual=16 extracted={0} total={1}" -f $extracted, $total)
 > `dye_*` 配方 ingredients 含 15 个他色方块 id（嵌套数组），同样被 79-id 替换覆盖 ✓。
 > 混凝土切石机 count=2——抽取自动保持，勿手改。
 
-- [ ] **Step 4: 运行脚本**
+- [x] **Step 4: 运行脚本**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gen-recipes.ps1
@@ -845,11 +845,11 @@ Get-Content src\main\resources\data\more-things-vanilla\recipe\iron_block_slab.j
 ```
 Expected: dye 内 15 个数组元素全部 `more-things-vanilla:*_wool_slab`；result `more-things-vanilla:white_wool_slab`；矿物合成 pattern `###` count 6。
 
-- [ ] **Step 5: 跑 gametest 确认绿**
+- [x] **Step 5: 跑 gametest 确认绿**
 
 同 Task 1 Step 2 命令。Expected: 无 `<failure>`（6 个测试全绿：creativeTab、allBlocksRegistered、blocksDropThemselves、woolBlocksAreFlammable、blocksInTags、recipesLoaded）。
 
-- [ ] **Step 6: 构建 + 提交**
+- [x] **Step 6: 构建 + 提交**
 
 ```powershell
 .\gradlew.bat build
@@ -865,7 +865,7 @@ git commit -m "feat: add crafting and stonecutting recipes for all 79 blocks"
 - Modify: `README.md`（功能清单补一行：39 半砖 + 40 楼梯）
 - Modify: `docs/superpowers/plans/2026-10-31-slab-stairs.md`（勾选全部任务、记录结论）
 
-- [ ] **Step 1: 改名回归 grep（沿用计划 1 纪律）**
+- [x] **Step 1: 改名回归 grep（沿用计划 1 纪律）**
 
 ```powershell
 Select-String -Path (Get-ChildItem -Recurse -Include *.java,*.json,*.gradle,*.properties -File |
@@ -875,22 +875,22 @@ Select-String -Path (Get-ChildItem -Recurse -Include *.java,*.json,*.gradle,*.pr
 
 Expected: 无输出（模板残留为零）。
 
-- [ ] **Step 2: 全量 gametest + 全量构建**
+- [x] **Step 2: 全量 gametest + 全量构建**
 
 ```powershell
 Remove-Item build\gametest\report.xml -ErrorAction SilentlyContinue
 .\gradlew.bat runGametest
-# 判定：report.xml 存在、6 个测试、无 <failure> 元素
+# 判定：report.xml 存在、7 个 testcase（6 个本 mod 测试 + always_pass）、无 <failure> 元素
 .\gradlew.bat build
 ```
 
 Expected: BUILD SUCCESSFUL。
 
-- [ ] **Step 3: README 补功能行 + 计划文档收尾**
+- [x] **Step 3: README 补功能行 + 计划文档收尾**
 
 README 功能列表追加：`- 39 种半砖 + 40 种楼梯（矿物块/羊毛/混凝土/平滑石头，含配方、标签、战利品）`。计划文档勾选本任务与验收清单，记录 gametest 测试数与提交号。
 
-- [ ] **Step 4: 提交文档**
+- [x] **Step 4: 提交文档**
 
 ```powershell
 git add -A
@@ -907,15 +907,25 @@ git commit -m "docs: record slab and stairs plan completion"
 
 ---
 
+## 执行记录（2026-11-16 收尾）
+
+- Task 1：`684e2f3`（规格 ✅ / 质量 Yes；实现者修复计划 API 缺口：`ofFullCopy` 不复制 id，需 `setId` 后再构造）
+- Task 2：`64cbc75`（规格 ✅ / 质量 Yes；脚本 3 处修订：UTF-8 BOM、`_double`/`_side` 替换规则）
+- Task 3：`ce5ff37` + 审查修复 `bff40d4`（规格 ✅ / 质量 With fixes→已修：8 标签全断言 + wool∉pickaxe 负断言；计划 bug 修订：`GameTestHelper.destroyBlock` 26.2 为 dropBlocks=false，改用 `level.destroyBlock(..., true, ...)`）
+- Task 4：`360faf3` + 审查修复 `d5838d6`（规格 ✅ / 质量 Yes；修复：两脚本 zip try/finally、gen-recipes 头部注释）
+- Task 5：回归 grep 零命中（`bin/` 为 gitignore 的 IDE 残留，不计）；gametest **7 testcase / 0 failure**；`build` BUILD SUCCESSFUL
+
+---
+
 ## 验收清单（对照 设计.md 半砖/楼梯章节）
 
-- [ ] 39 半砖 + 40 楼梯全部注册（方块+物品），gametest `allBlocksRegistered` 绿
-- [ ] 占位铁块已移除，标签页内容 = 真实方块（`hasAnyItems`/`shouldDisplay` 继续守护）
-- [ ] 硬度/音效与基块一致（`ofFullCopy`）、掉落与基块同（战利品表，26.2 格式）且掉落测试绿
-- [ ] 羊毛系可燃 (30, 60) 同原版，测试绿
-- [ ] 标签：羊毛→wool_slabs/wool_stairs、混凝土→concrete_slabs/concrete_stairs+mineable/pickaxe、矿物→mineable/pickaxe+needs_*_tool 继承；不进 wool/concrete/beacon_base_blocks（用户拍板 A）
-- [ ] 配方：3→6 半砖 / 6→4 楼梯；羊毛/混凝土切石机按 26.4 实际（羊毛无、混凝土 1→2）；平滑石楼梯切石机 1:1；每方块可合成（`recipesLoaded` 绿）
-- [ ] 模型/方块状态/物品模型定义齐全（79/198/79），客户端无紫黑缺失
-- [ ] zh_cn/en_us 语言条目齐全（各 79 块条目 + 标签名）
+- [x] 39 半砖 + 40 楼梯全部注册（方块+物品），gametest `allBlocksRegistered` 绿
+- [x] 占位铁块已移除，标签页内容 = 真实方块（`hasAnyItems`/`shouldDisplay` 继续守护）
+- [x] 硬度/音效与基块一致（`ofFullCopy`）、掉落与基块同（战利品表，26.2 格式）且掉落测试绿
+- [x] 羊毛系可燃 (30, 60) 同原版，测试绿
+- [x] 标签：羊毛→wool_slabs/wool_stairs、混凝土→concrete_slabs/concrete_stairs+mineable/pickaxe、矿物→mineable/pickaxe+needs_*_tool 继承；不进 wool/concrete/beacon_base_blocks（用户拍板 A）
+- [x] 配方：3→6 半砖 / 6→4 楼梯；羊毛/混凝土切石机按 26.4 实际（羊毛无、混凝土 1→2）；平滑石楼梯切石机 1:1；每方块可合成（`recipesLoaded` 绿）
+- [x] 模型/方块状态/物品模型定义齐全（79/198/79），客户端无紫黑缺失
+- [x] zh_cn/en_us 语言条目齐全（各 79 块条目 + 标签名）
 - [ ] 客户端人眼验收通过（Task 5 Step 5 四项）
 - [ ] 全部改动已提交、工作区干净
