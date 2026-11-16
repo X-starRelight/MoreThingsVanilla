@@ -904,6 +904,8 @@ git commit -m "docs: record slab and stairs plan completion"
 2. 放置半砖/楼梯形状正常、可挖掉落（羊毛半砖点燃可烧）
 3. 切石机放入白色混凝土 → 出现 2 个白色混凝土半砖等选项；工作台 3 铁块 → 6 铁块半砖
 4. 创造标签页标题仍为「更多内容-原版」
+5. 熔炉燃料槽放入羊毛系半砖/楼梯 → 可烧 1 个物品（300 tick，同木板）
+6. 切石机放入铁块等 7 种矿物块 → 出现半砖（1→2）与楼梯（1→1）选项
 
 ---
 
@@ -915,6 +917,13 @@ git commit -m "docs: record slab and stairs plan completion"
 - Task 4：`360faf3` + 审查修复 `d5838d6`（规格 ✅ / 质量 Yes；修复：两脚本 zip try/finally、gen-recipes 头部注释）
 - Task 5：回归 grep 零命中（`bin/` 为 gitignore 的 IDE 残留，不计）；gametest **7 testcase / 0 failure**；`build` BUILD SUCCESSFUL
 
+### 验收反馈修订（2026-11-16 人眼验收）
+
+- 翻译键 bug `a888a6c`：26.2 `Item.Properties` 默认 `item.` 前缀，方块物品须显式 `useBlockDescriptionPrefix()`（原版 `Items` 同款），否则游戏内显示完整翻译键；新增测试 `itemNamesUseBlockTranslationKey` 锁死 79 物品
+- 验收反馈两项 `3773d25`（gametest **9 testcase / 0 failure**）：
+  1. **羊毛系熔炉燃料**（新功能，原版羊毛不是燃料）：`FuelValueEvents.BUILD` 注册本 mod 32 个羊毛半砖/楼梯，每个 300 tick（同木板，用户拍板）；测试 `woolBlocksAreFuels` 含矿物系负断言
+  2. **矿物切石机 14 条**（推翻计划原「矿物不加切石机」，用户拍板）：7 矿物块 × 半砖 1→2 / 楼梯 1:1；`gen-recipes.ps1` 手写段 16→30，配方总数 144→158
+
 ---
 
 ## 验收清单（对照 设计.md 半砖/楼梯章节）
@@ -924,8 +933,9 @@ git commit -m "docs: record slab and stairs plan completion"
 - [x] 硬度/音效与基块一致（`ofFullCopy`）、掉落与基块同（战利品表，26.2 格式）且掉落测试绿
 - [x] 羊毛系可燃 (30, 60) 同原版，测试绿
 - [x] 标签：羊毛→wool_slabs/wool_stairs、混凝土→concrete_slabs/concrete_stairs+mineable/pickaxe、矿物→mineable/pickaxe+needs_*_tool 继承；不进 wool/concrete/beacon_base_blocks（用户拍板 A）
-- [x] 配方：3→6 半砖 / 6→4 楼梯；羊毛/混凝土切石机按 26.4 实际（羊毛无、混凝土 1→2）；平滑石楼梯切石机 1:1；每方块可合成（`recipesLoaded` 绿）
+- [x] 配方：3→6 半砖 / 6→4 楼梯；羊毛/混凝土切石机按 26.4 实际（羊毛无、混凝土 1→2）；平滑石楼梯切石机 1:1；矿物切石机半砖 1→2、楼梯 1:1（验收拍板）；每方块可合成（`recipesLoaded` 绿）
+- [x] 羊毛系 32 方块可当熔炉燃料 300 tick（验收拍板，`woolBlocksAreFuels` 绿）
 - [x] 模型/方块状态/物品模型定义齐全（79/198/79），客户端无紫黑缺失
 - [x] zh_cn/en_us 语言条目齐全（各 79 块条目 + 标签名）
-- [ ] 客户端人眼验收通过（Task 5 Step 5 四项）
+- [ ] 客户端人眼验收通过（Task 5 Step 5 六项 + 翻译键中文名）
 - [ ] 全部改动已提交、工作区干净
