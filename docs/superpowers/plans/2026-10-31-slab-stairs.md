@@ -937,5 +937,5 @@ git commit -m "docs: record slab and stairs plan completion"
 - [x] 羊毛系 32 方块可当熔炉燃料 300 tick（验收拍板，`woolBlocksAreFuels` 绿）
 - [x] 模型/方块状态/物品模型定义齐全（79/198/79），客户端无紫黑缺失
 - [x] zh_cn/en_us 语言条目齐全（各 79 块条目 + 标签名）
-- [ ] 客户端人眼验收通过（Task 5 Step 5 六项 + 翻译键中文名）
-- [ ] 全部改动已提交、工作区干净
+- [x] 客户端人眼验收通过（Task 5 Step 5 六项 + 翻译键中文名，2026-11-16 用户确认「均通过」）
+- [x] 全部改动已提交、工作区干净
