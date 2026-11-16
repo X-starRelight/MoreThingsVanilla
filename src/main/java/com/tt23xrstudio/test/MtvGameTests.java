@@ -163,6 +163,21 @@ public final class MtvGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * 物品显示名必须用 block. 翻译键（与原版一致：Items 注册方块物品时调 useBlockDescriptionPrefix()）。
+	 * 26.2 的 Item.Properties 默认 item. 前缀，漏调该方法会导致创造面板显示原始翻译键。
+	 */
+	@GameTest
+	public void itemNamesUseBlockTranslationKey(GameTestHelper helper) {
+		String prefix = "block." + MoreThingsVanilla.MOD_ID + ".";
+		for (String path : ALL_NEW_BLOCK_IDS) {
+			Item item = BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id(path));
+			helper.assertValueEqual(prefix + path, item.getDescriptionId(),
+					"wrong description id for item: " + path);
+		}
+		helper.succeed();
+	}
+
 	@GameTest
 	public void recipesLoaded(GameTestHelper helper) {
 		// 每个方块至少一条合成配方（手写或 26.4 抽取，配方 id = 方块 id）

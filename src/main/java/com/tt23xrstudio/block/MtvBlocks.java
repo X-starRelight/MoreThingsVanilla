@@ -79,7 +79,9 @@ public final class MtvBlocks {
 		Registry.register(BuiltInRegistries.BLOCK, MoreThingsVanilla.id(path), block);
 		ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, MoreThingsVanilla.id(path));
 		BlockItem item = Registry.register(BuiltInRegistries.ITEM, MoreThingsVanilla.id(path),
-				new BlockItem(block, new Item.Properties().setId(itemKey)));
+				// 26.2：Item.Properties 默认 item. 前缀；方块物品须显式切到 block. 前缀
+				// （原版 Items 注册同款），否则游戏内显示原始翻译键、lang 的 block.* 条目全部不生效。
+				new BlockItem(block, new Item.Properties().setId(itemKey).useBlockDescriptionPrefix()));
 		MoreThingsVanilla.TAB_ITEMS.add(item);
 		ALL.put(path, block);
 		if (flammable) {
