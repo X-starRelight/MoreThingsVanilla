@@ -2,6 +2,9 @@
 	[string]$RefJar = "D:\minecraft\.minecraft\versions\26.4-snapshot-6-Fabric 0.20.0\26.4-snapshot-6-Fabric 0.20.0.jar",
 	[string]$ProjectRoot = (Split-Path $PSScriptRoot -Parent)
 )
+# 用途：生成 79 个方块的配方——手写 16 个矿物系/平滑石头配方，另从 26.4 jar 抽取 128 个羊毛/混凝土系配方。
+# 参考 jar：$RefJar 默认 26.4-snapshot-6-Fabric（26.4 快照）；矿物系/平滑石楼梯该版本不存在，天然不撞。
+# 格式：抽取文件沿用原版 2 空格缩进，手写部分为 TAB 缩进，两者混合属预期。
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $ns = 'more-things-vanilla'
@@ -23,28 +26,32 @@ function Write-Utf8Json([string]$path, [string]$text) {
 
 # ---- 1) 从 26.4 抽取（羊毛/混凝土系的合成+染色+切石机；矿物系/平滑石楼梯 26.4 没有，天然不撞）----
 $zip = [System.IO.Compression.ZipFile]::OpenRead($RefJar)
-$extracted = 0
-foreach ($e in $zip.Entries) {
-	if ($e.FullName -notlike 'data/minecraft/recipe/*.json') { continue }
-	if ($e.FullName.Split('/').Count -ne 4) { continue }   # 只取直接子文件
-	$sr = New-Object System.IO.StreamReader($e.Open())
-	try { $t = $sr.ReadToEnd() } finally { $sr.Close() }
-	try { $j = ConvertFrom-Json $t } catch { continue }
-	$resultId = $null
-	if ($j.result -is [string]) { $resultId = $j.result }
-	elseif ($j.result -and $j.result.id) { $resultId = $j.result.id }
-	if (-not $resultId -or $resultId -notlike 'minecraft:*') { continue }
-	$pathPart = ($resultId -split ':', 2)[1]
-	if (-not $idSet.ContainsKey($pathPart)) { continue }   # result id 不在 79 表内 → 不是我们的方块
-	# 命中：79 个 id 逐个带引号精确替换（基块如 white_wool 不在表内，天然不动）
-	foreach ($id in $ids) {
-		$t = $t.Replace('"minecraft:' + $id + '"', '"' + $ns + ':' + $id + '"')
+try {
+	$extracted = 0
+	foreach ($e in $zip.Entries) {
+		if ($e.FullName -notlike 'data/minecraft/recipe/*.json') { continue }
+		if ($e.FullName.Split('/').Count -ne 4) { continue }   # 只取直接子文件
+		$sr = New-Object System.IO.StreamReader($e.Open())
+		try { $t = $sr.ReadToEnd() } finally { $sr.Close() }
+		try { $j = ConvertFrom-Json $t } catch { continue }
+		$resultId = $null
+		if ($j.result -is [string]) { $resultId = $j.result }
+		elseif ($j.result -and $j.result.id) { $resultId = $j.result.id }
+		if (-not $resultId -or $resultId -notlike 'minecraft:*') { continue }
+		$pathPart = ($resultId -split ':', 2)[1]
+		if (-not $idSet.ContainsKey($pathPart)) { continue }   # result id 不在 79 表内 → 不是我们的方块
+		# 命中：79 个 id 逐个带引号精确替换（基块如 white_wool 不在表内，天然不动）
+		foreach ($id in $ids) {
+			$t = $t.Replace('"minecraft:' + $id + '"', '"' + $ns + ':' + $id + '"')
+		}
+		[void](ConvertFrom-Json $t)
+		Write-Utf8Json (Join-Path $recipeDir (Split-Path $e.FullName -Leaf)) $t
+		$extracted++
 	}
-	[void](ConvertFrom-Json $t)
-	Write-Utf8Json (Join-Path $recipeDir (Split-Path $e.FullName -Leaf)) $t
-	$extracted++
 }
-$zip.Dispose()
+finally {
+	$zip.Dispose()
+}
 
 # ---- 2) 手写矿物系 + 平滑石楼梯（26.4 没有；格式 = 26.2 实测模板）----
 $slabTpl = @'

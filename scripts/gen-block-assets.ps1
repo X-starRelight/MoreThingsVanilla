@@ -48,22 +48,26 @@ if ($entries.Count -ne 79) { throw "entry count $($entries.Count) != 79" }
 
 # ---- 从 26.2 jar 抽模板 ----
 $zip = [System.IO.Compression.ZipFile]::OpenRead($MergedJar)
-function Read-JarEntry([string]$name) {
-	$e = $zip.Entries | Where-Object FullName -eq $name
-	if (-not $e) { throw "template missing in jar: $name" }
-	$sr = New-Object System.IO.StreamReader($e.Open())
-	try { $sr.ReadToEnd() } finally { $sr.Close() }
+try {
+	function Read-JarEntry([string]$name) {
+		$e = $zip.Entries | Where-Object FullName -eq $name
+		if (-not $e) { throw "template missing in jar: $name" }
+		$sr = New-Object System.IO.StreamReader($e.Open())
+		try { $sr.ReadToEnd() } finally { $sr.Close() }
+	}
+	$tplSlabBlockstate = Read-JarEntry 'assets/minecraft/blockstates/smooth_stone_slab.json'
+	$tplSlabModel      = Read-JarEntry 'assets/minecraft/models/block/smooth_stone_slab.json'
+	$tplSlabTopModel   = Read-JarEntry 'assets/minecraft/models/block/smooth_stone_slab_top.json'
+	$tplSlabItem       = Read-JarEntry 'assets/minecraft/items/smooth_stone_slab.json'
+	$tplStairsBlockstate = Read-JarEntry 'assets/minecraft/blockstates/stone_stairs.json'
+	$tplStairsModel      = Read-JarEntry 'assets/minecraft/models/block/stone_stairs.json'
+	$tplStairsInner      = Read-JarEntry 'assets/minecraft/models/block/stone_stairs_inner.json'
+	$tplStairsOuter      = Read-JarEntry 'assets/minecraft/models/block/stone_stairs_outer.json'
+	$tplStairsItem       = Read-JarEntry 'assets/minecraft/items/stone_stairs.json'
 }
-$tplSlabBlockstate = Read-JarEntry 'assets/minecraft/blockstates/smooth_stone_slab.json'
-$tplSlabModel      = Read-JarEntry 'assets/minecraft/models/block/smooth_stone_slab.json'
-$tplSlabTopModel   = Read-JarEntry 'assets/minecraft/models/block/smooth_stone_slab_top.json'
-$tplSlabItem       = Read-JarEntry 'assets/minecraft/items/smooth_stone_slab.json'
-$tplStairsBlockstate = Read-JarEntry 'assets/minecraft/blockstates/stone_stairs.json'
-$tplStairsModel      = Read-JarEntry 'assets/minecraft/models/block/stone_stairs.json'
-$tplStairsInner      = Read-JarEntry 'assets/minecraft/models/block/stone_stairs_inner.json'
-$tplStairsOuter      = Read-JarEntry 'assets/minecraft/models/block/stone_stairs_outer.json'
-$tplStairsItem       = Read-JarEntry 'assets/minecraft/items/stone_stairs.json'
-$zip.Dispose()
+finally {
+	$zip.Dispose()
+}
 
 # 替换：字面 .Replace（无正则元字符风险），带引号精确匹配，最长优先。
 # 模板中模型引用形如 "minecraft:block/smooth_stone_slab_top"（单冒号命名空间），输出 "more-things-vanilla:block/<id>_top"。
