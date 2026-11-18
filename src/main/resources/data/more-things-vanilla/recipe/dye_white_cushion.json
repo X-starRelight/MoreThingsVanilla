@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "group": "cushion_dye",
+  "ingredients": [
+    "minecraft:white_dye",
+    [
+      "more-things-vanilla:orange_cushion",
+      "more-things-vanilla:magenta_cushion",
+      "more-things-vanilla:light_blue_cushion",
+      "more-things-vanilla:yellow_cushion",
+      "more-things-vanilla:lime_cushion",
+      "more-things-vanilla:pink_cushion",
+      "more-things-vanilla:gray_cushion",
+      "more-things-vanilla:light_gray_cushion",
+      "more-things-vanilla:cyan_cushion",
+      "more-things-vanilla:purple_cushion",
+      "more-things-vanilla:blue_cushion",
+      "more-things-vanilla:brown_cushion",
+      "more-things-vanilla:green_cushion",
+      "more-things-vanilla:red_cushion",
+      "more-things-vanilla:black_cushion"
+    ]
+  ],
+  "result": {
+    "id": "more-things-vanilla:white_cushion"
+  }
+}

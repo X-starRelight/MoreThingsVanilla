@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.tt23xrstudio.block.MtvBlocks;
+import com.tt23xrstudio.cushion.MtvCushions;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
@@ -46,6 +47,8 @@ public final class MoreThingsVanilla implements ModInitializer {
 		);
 		// 计划 2 的半砖/楼梯（占位铁块已随首个真实方块移除，见计划 1 Task 6 约定）
 		MtvBlocks.registerAll();
+		// 计划 3 的坐垫（复刻 26.4：实体 + 16 色物品 + 4 音效 + 燃料）
+		MtvCushions.registerAll();
 		LOGGER.info("MoreThingsVanilla loaded");
 	}
 

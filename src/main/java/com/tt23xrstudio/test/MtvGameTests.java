@@ -6,19 +6,31 @@ import com.tt23xrstudio.block.MtvBlocks;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.FuelValues;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -224,5 +236,117 @@ public final class MtvGameTests {
 					"recipe not loaded: " + MoreThingsVanilla.MOD_ID + ":" + path);
 		}
 		helper.succeed();
+	}
+
+	// ==================== 计划 3：坐垫（复刻 26.4） ====================
+
+	/** 16 色坐垫 id 路径（与 26.4 原版平行，仅命名空间不同）。 */
+	private static final String[] CUSHION_COLORS = {
+			"white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
+			"light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black"
+	};
+
+	/** 26.4 原版 4 个坐垫音效事件（sounds.json 键，提取到本 mod 命名空间重注册）。 */
+	private static final String[] CUSHION_SOUNDS = {
+			"entity.cushion.break", "entity.cushion.get_up", "entity.cushion.place", "entity.cushion.sit"
+	};
+
+	@GameTest
+	public void cushionsRegistered(GameTestHelper helper) {
+		TagKey<Item> cushionsTag = TagKey.create(Registries.ITEM,
+				Identifier.fromNamespaceAndPath("minecraft", "cushions"));
+		for (String color : CUSHION_COLORS) {
+			Identifier id = MoreThingsVanilla.id(color + "_cushion");
+			helper.assertTrue(BuiltInRegistries.ITEM.containsKey(id), "cushion item not registered: " + id);
+			Item item = BuiltInRegistries.ITEM.getValue(id);
+			helper.assertValueEqual("item." + MoreThingsVanilla.MOD_ID + "." + color + "_cushion",
+					item.getDescriptionId(), "wrong description id: " + color);
+			helper.assertTrue(new ItemStack(item).is(cushionsTag),
+					"cushion not in minecraft:cushions: " + color);
+			helper.assertTrue(MoreThingsVanilla.TAB_ITEMS.contains(item),
+					"cushion missing from creative tab: " + color);
+		}
+		Identifier entityId = MoreThingsVanilla.id("cushion");
+		helper.assertTrue(BuiltInRegistries.ENTITY_TYPE.containsKey(entityId),
+				"cushion entity type not registered: " + entityId);
+		for (String sound : CUSHION_SOUNDS) {
+			helper.assertTrue(BuiltInRegistries.SOUND_EVENT.containsKey(MoreThingsVanilla.id(sound)),
+					"cushion sound not registered: " + sound);
+		}
+		helper.succeed();
+	}
+
+	/** 32 条配方：16 条合成（3 羊毛半砖）+ 16 条染料重染（26.4 原版抽取，命名空间替换）。 */
+	@GameTest
+	public void cushionRecipesLoaded(GameTestHelper helper) {
+		for (String color : CUSHION_COLORS) {
+			String[] paths = {color + "_cushion", "dye_" + color + "_cushion"};
+			for (String path : paths) {
+				ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, MoreThingsVanilla.id(path));
+				helper.assertTrue(
+						helper.getLevel().getServer().getRecipeManager().byKey(key).isPresent(),
+						"recipe not loaded: " + MoreThingsVanilla.MOD_ID + ":" + path);
+			}
+		}
+		helper.succeed();
+	}
+
+	/** 26.4 原版两个标签：物品 minecraft:cushions、方块 minecraft:cushion_uses_collision_shape。 */
+	@GameTest
+	public void cushionTags(GameTestHelper helper) {
+		TagKey<Block> collisionTag = TagKey.create(Registries.BLOCK,
+				Identifier.fromNamespaceAndPath("minecraft", "cushion_uses_collision_shape"));
+		// 26.4 内容：[#minecraft:cauldrons, hopper, composter]（碰撞箱≠可视形状，放置需射线校正）
+		helper.assertTrue(Blocks.HOPPER.defaultBlockState().is(collisionTag),
+				"hopper not in minecraft:cushion_uses_collision_shape");
+		helper.assertTrue(Blocks.COMPOSTER.defaultBlockState().is(collisionTag),
+				"composter not in minecraft:cushion_uses_collision_shape");
+		helper.assertFalse(Blocks.STONE.defaultBlockState().is(collisionTag),
+				"stone unexpectedly in minecraft:cushion_uses_collision_shape");
+		helper.succeed();
+	}
+
+	/** 16 色坐垫均为燃料，50 tick（26.4：cookingFuel(COOKING_TIME_WOOL_SLABS)，time_wool_slabs.json = 50）。 */
+	@GameTest
+	public void cushionsAreFuels(GameTestHelper helper) {
+		FuelValues fuels = helper.getLevel().getServer().fuelValues();
+		for (String color : CUSHION_COLORS) {
+			ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id(color + "_cushion")));
+			helper.assertTrue(fuels.isFuel(stack), "cushion not a fuel: " + color);
+			helper.assertValueEqual(50, fuels.burnDuration(stack), "wrong burn duration: " + color);
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * 放置 → 实体生成（中键取物验证颜色随物品传递）→ 玩家攻击破坏 → 掉落对应颜色物品。
+	 * 复刻 26.4 CushionItem.useOn + Cushion.dropItem 主链路。
+	 */
+	@GameTest
+	public void cushionPlaceAndBreak(GameTestHelper helper) {
+		BlockPos groundPos = new BlockPos(3, 1, 1);
+		helper.setBlock(groundPos, Blocks.STONE);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		Item whiteCushion = BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id("white_cushion"));
+		ItemStack stack = new ItemStack(whiteCushion);
+		BlockPos absGround = helper.absolutePos(groundPos);
+		// 点击顶面中心（y = 方块顶面）
+		Vec3 clickLocation = new Vec3(absGround.getX() + 0.5, absGround.getY() + 1.0, absGround.getZ() + 0.5);
+		BlockHitResult hit = new BlockHitResult(clickLocation, Direction.UP, absGround, false);
+		InteractionResult result = stack.useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+		helper.assertTrue(result.consumesAction(), "cushion placement did not consume: " + result);
+
+		EntityType<?> cushionType = BuiltInRegistries.ENTITY_TYPE.getValue(MoreThingsVanilla.id("cushion"));
+		AABB searchArea = new AABB(absGround.getX() - 1, absGround.getY(), absGround.getZ() - 1,
+				absGround.getX() + 2, absGround.getY() + 3, absGround.getZ() + 2);
+		List<Entity> placed = helper.getLevel().getEntitiesOfClass(Entity.class, searchArea).stream()
+				.filter(entity -> entity.getType() == cushionType)
+				.toList();
+		helper.assertValueEqual(1, placed.size(), "placed cushion entity count");
+		// 中键取物 = 对应颜色物品（验证颜色随物品传递）
+		helper.assertValueEqual(whiteCushion, placed.get(0).getPickResult().getItem(), "wrong pick result color");
+		// 玩家攻击破坏 → dropItem 掉落对应颜色物品
+		placed.get(0).skipAttackInteraction(player);
+		helper.succeedWhen(() -> helper.assertItemEntityPresent(whiteCushion, groundPos.above(), 2.0));
 	}
 }
