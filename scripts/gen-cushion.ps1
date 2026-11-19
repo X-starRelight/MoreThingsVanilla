@@ -145,7 +145,7 @@ $parts = @()
 foreach ($k in $soundKeys) {
 	$entry = $soundsObj.$k
 	if (-not $entry) { throw "vanilla sounds.json missing key: $k" }
-	$soundList = ($entry.sounds | ForEach-Object { '"' + $_ + '"' }) -join ', '
+	$soundList = ($entry.sounds | ForEach-Object { '"' + $ns + ':' + $_ + '"' }) -join ', '
 	$parts += "`t`"$k`": {`n`t`t`"sounds`": [$soundList],`n`t`t`"subtitle`": `"$($entry.subtitle)`"`n`t}"
 }
 $soundsJson = "{`n" + ($parts -join ",`n") + "`n}`n"
@@ -241,10 +241,15 @@ foreach ($c in $colors) {
 	if ($dye.result.id -ne "${ns}:$c`_cushion") { throw "dye result wrong: $c" }
 }
 
-# sounds.json 4 键齐全
+# sounds.json 4 键齐全，且音效路径必须带本 mod 命名空间
+# （sounds.json 内无前缀的路径默认按 minecraft: 解析 → 去 assets/minecraft/sounds 找 →
+#   26.2 原版无坐垫 ogg → 事件为空音效，运行时告警 File ... does not exist）
 $soundsCheck = ConvertFrom-Json (Get-Content (Join-Path $root "assets\$ns\sounds.json") -Raw -Encoding UTF8)
 foreach ($k in $soundKeys) {
 	if (-not ($soundsCheck.PSObject.Properties.Name -contains $k)) { throw "sounds.json missing: $k" }
+	foreach ($snd in @($soundsCheck.$k.sounds)) {
+		if (-not $snd.ToString().StartsWith("${ns}:")) { throw "sound path missing namespace prefix: $k -> $snd" }
+	}
 }
 
 # lang 21 键 × 2：全部存在
