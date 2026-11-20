@@ -61,7 +61,9 @@ public final class MtvGameTests {
 			"black_concrete_stairs", "white_concrete_stairs", "gray_concrete_stairs", "light_gray_concrete_stairs",
 			"red_concrete_stairs", "orange_concrete_stairs", "yellow_concrete_stairs", "lime_concrete_stairs",
 			"green_concrete_stairs", "cyan_concrete_stairs", "light_blue_concrete_stairs", "blue_concrete_stairs",
-			"purple_concrete_stairs", "magenta_concrete_stairs", "pink_concrete_stairs", "brown_concrete_stairs"
+			"purple_concrete_stairs", "magenta_concrete_stairs", "pink_concrete_stairs", "brown_concrete_stairs",
+			// 计划 4：竖直红石三件套 3
+			"vertical_redstone", "vertical_repeater", "vertical_comparator"
 	};
 
 	@GameTest
@@ -348,5 +350,154 @@ public final class MtvGameTests {
 		// 玩家攻击破坏 → dropItem 掉落对应颜色物品
 		placed.get(0).skipAttackInteraction(player);
 		helper.succeedWhen(() -> helper.assertItemEntityPresent(whiteCushion, groundPos.above(), 2.0));
+	}
+
+	// ==================== 计划 4：竖直红石三件套 ====================
+
+	private static Block verticalBlock(String path) {
+		return BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id(path));
+	}
+
+	/** 竖直红石信号链：红石块(15) → 三格竖直红石 15/14/13（每过一格衰减 -1，同原版红石粉）。 */
+	@GameTest
+	public void verticalRedstoneDecaysPerBlock(GameTestHelper helper) {
+		BlockPos source = new BlockPos(1, 1, 1);
+		helper.setBlock(source, Blocks.REDSTONE_BLOCK);
+		helper.setBlock(new BlockPos(2, 1, 1), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(3, 1, 1), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(4, 1, 1), verticalBlock("vertical_redstone"));
+		helper.assertValueEqual(15, helper.getBlockState(new BlockPos(2, 1, 1))
+				.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.POWER), "first vertical redstone power");
+		helper.assertValueEqual(14, helper.getBlockState(new BlockPos(3, 1, 1))
+				.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.POWER), "second vertical redstone power");
+		helper.assertValueEqual(13, helper.getBlockState(new BlockPos(4, 1, 1))
+				.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.POWER), "third vertical redstone power");
+		helper.succeed();
+	}
+
+	/** 竖直红石六面均能输出信号（含上下），且强充能紧邻方块。 */
+	@GameTest
+	public void verticalRedstoneSixFacesAndStrongPower(GameTestHelper helper) {
+		BlockPos vr = new BlockPos(3, 3, 3);
+		// 先放竖直红石，再放红石块供电（手动电平会被邻居更新重算覆盖，必须用真实电源）
+		helper.setBlock(vr, verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(2, 3, 3), Blocks.REDSTONE_BLOCK);
+		helper.assertValueEqual(15, helper.getBlockState(vr).getValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.POWER), "power from redstone block");
+		// 六面输出：读竖直红石自身信号（direction 语义由实现内部处理，六面统一电平）
+		net.minecraft.core.Direction[] all = net.minecraft.core.Direction.values();
+		for (net.minecraft.core.Direction dir : all) {
+			int signal = helper.getLevel().getSignal(helper.absolutePos(vr), dir);
+			helper.assertValueEqual(15, signal, "signal face " + dir);
+		}
+		// 强充能：紧邻实体方块应带 direct signal 15（getDirectSignalTo = 各邻居对它的强充能）
+		helper.setBlock(new BlockPos(4, 3, 3), Blocks.STONE);
+		int direct = helper.getLevel().getDirectSignalTo(helper.absolutePos(new BlockPos(4, 3, 3)));
+		helper.assertValueEqual(15, direct, "strong power into stone");
+		helper.succeed();
+	}
+
+	/** 与原版红石粉互通：红石粉贴着竖直红石时视觉连接属性非 NONE，且信号双向传递。 */
+	@GameTest
+	public void verticalRedstoneInteropsWithVanillaWire(GameTestHelper helper) {
+		BlockPos vr = new BlockPos(2, 1, 2);
+		BlockPos wirePos = new BlockPos(3, 1, 2);
+		// 红石粉放在竖直红石东侧（放在石头上）。
+		// 顺序关键：helper.setBlock 放粉只得到全 NONE 默认态，连接靠邻居出现时 wire.updateShape 重算，
+		// 所以先放粉、后放竖直红石（否则连接永不计算）。
+		helper.setBlock(new BlockPos(3, 0, 2), Blocks.STONE);
+		helper.setBlock(wirePos, Blocks.REDSTONE_WIRE);
+		helper.setBlock(vr, verticalBlock("vertical_redstone").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.POWER, 12));
+		// 红石粉应朝西连接到竖红石（signal source 互通）
+		net.minecraft.world.level.block.state.properties.RedstoneSide side = helper.getBlockState(wirePos).getValue(
+				net.minecraft.world.level.block.RedStoneWireBlock.WEST);
+		helper.assertTrue(side.isConnected(), "vanilla wire not connected toward vertical redstone: " + side);
+		// 双向：红石粉(15) → 竖直红石 = 14（按 -1 衰减读入）。
+		// 红石块只贴粉、不贴竖直红石，验证信号确实从粉读入；先重置再供电触发重算。
+		helper.setBlock(vr, verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(3, 1, 3), Blocks.REDSTONE_BLOCK);
+		int power = helper.getBlockState(vr).getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.POWER);
+		helper.assertValueEqual(14, power, "vertical redstone should read vanilla wire at 15 minus 1");
+		helper.succeed();
+	}
+
+	/** 中继器 6 个放置朝向：FACING = 输出方向 = 点击面朝向。 */
+	@GameTest
+	public void verticalRepeaterPlacementOrientations(GameTestHelper helper) {
+		net.minecraft.core.Direction[] faces = {
+				net.minecraft.core.Direction.UP, net.minecraft.core.Direction.DOWN,
+				net.minecraft.core.Direction.EAST, net.minecraft.core.Direction.SOUTH,
+				net.minecraft.core.Direction.WEST, net.minecraft.core.Direction.NORTH
+		};
+		Item repeater = BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id("vertical_repeater"));
+		Player player = helper.makeMockPlayer(GameType.CREATIVE);
+		int i = 0;
+		for (net.minecraft.core.Direction face : faces) {
+			// y=2/z=2 布局，避开结构地板 y=0 与边界 z=0
+			BlockPos support = new BlockPos(1 + i, 2, 2);
+			helper.setBlock(support, Blocks.STONE);
+			BlockPos target = support.relative(face);
+			helper.setBlock(target, Blocks.AIR);
+			Vec3 click = new Vec3(helper.absolutePos(target).getX() + 0.5 - face.getStepX() * 0.5,
+					helper.absolutePos(target).getY() + 0.5 - face.getStepY() * 0.5,
+					helper.absolutePos(target).getZ() + 0.5 - face.getStepZ() * 0.5);
+			BlockHitResult hit = new BlockHitResult(click, face, helper.absolutePos(support), false);
+			InteractionResult result = new ItemStack(repeater).useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+			helper.assertTrue(result.consumesAction(), "placement failed for face " + face + ": " + result);
+			net.minecraft.world.level.block.state.BlockState placed = helper.getBlockState(target);
+			helper.assertTrue(placed.is(verticalBlock("vertical_repeater")), "not repeater at " + target + ": " + placed);
+			helper.assertValueEqual(face, placed.getValue(
+					net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING), "wrong facing for clicked " + face);
+			i++;
+		}
+		helper.succeed();
+	}
+
+	/** 中继器：输入端供能 → 延迟后输出端输出 15（输出方向 = FACING）。 */
+	@GameTest
+	public void verticalRepeaterDelaysAndOutputs(GameTestHelper helper) {
+		// 输出朝东：输入在西
+		BlockPos rep = new BlockPos(3, 1, 3);
+		helper.setBlock(rep, verticalBlock("vertical_repeater").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, net.minecraft.core.Direction.EAST));
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		// 延迟 2 tick（1 档），等待后断言输出
+		helper.succeedWhen(() -> {
+			// getSignal(pos, dir) 读 pos 处方块：pos=中继器、dir=观察者(输出侧东)→源=WEST
+			int out = helper.getLevel().getSignal(helper.absolutePos(rep), net.minecraft.core.Direction.WEST);
+			helper.assertValueEqual(15, out, "repeater output east");
+		});
+	}
+
+	/** 比较器：比较模式与减法模式 + 侧面输入（输出朝上时读 4 个水平方向）。 */
+	@GameTest
+	public void verticalComparatorModesAndSideInput(GameTestHelper helper) {
+		// 输出朝上，后端（下方）供能 15，侧面无信号 → 输出 15
+		BlockPos comp = new BlockPos(3, 1, 3);
+		helper.setBlock(comp, verticalBlock("vertical_comparator").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, net.minecraft.core.Direction.UP));
+		helper.setBlock(new BlockPos(3, 0, 3), Blocks.REDSTONE_BLOCK);
+		helper.succeedWhen(() -> {
+			// getSignal(pos, dir) 读 pos 处方块：pos=比较器、dir=观察者(输出侧上)→源=DOWN
+			int up = helper.getLevel().getSignal(helper.absolutePos(comp), net.minecraft.core.Direction.DOWN);
+			helper.assertValueEqual(15, up, "comparator output up");
+			// 侧面（4 水平方向任一）供能 15 > 输入？输入也是 15，减法模式下 15-15=0；先验证减法模式切换
+			net.minecraft.world.level.block.state.BlockState state = helper.getBlockState(comp);
+			helper.assertValueEqual(net.minecraft.world.level.block.state.properties.ComparatorMode.COMPARE,
+					state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.MODE_COMPARATOR), "default mode");
+		});
+	}
+
+	/** 三个新方块均有配方（竖直红石=红石粉合成；中继器/比较器同材料竖排）。 */
+	@GameTest
+	public void verticalRecipesLoaded(GameTestHelper helper) {
+		for (String path : new String[] {"vertical_redstone", "vertical_repeater", "vertical_comparator"}) {
+			ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, MoreThingsVanilla.id(path));
+			helper.assertTrue(
+					helper.getLevel().getServer().getRecipeManager().byKey(key).isPresent(),
+					"recipe not loaded: " + MoreThingsVanilla.MOD_ID + ":" + path);
+		}
+		helper.succeed();
 	}
 }

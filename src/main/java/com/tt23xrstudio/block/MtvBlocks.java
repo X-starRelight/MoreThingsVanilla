@@ -7,6 +7,10 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.tt23xrstudio.MoreThingsVanilla;
+import com.tt23xrstudio.redstone.VerticalComparatorBlock;
+import com.tt23xrstudio.redstone.VerticalComparatorBlockEntity;
+import com.tt23xrstudio.redstone.VerticalRedstoneBlock;
+import com.tt23xrstudio.redstone.VerticalRepeaterBlock;
 
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.FuelValueEvents;
@@ -63,6 +67,8 @@ public final class MtvBlocks {
 		for (Block base : MINERAL_BASES) registerStairs(base, false);
 		for (Block base : woolBases()) registerStairs(base, true);
 		for (Block base : concreteBases()) registerStairs(base, false);
+		// 计划 4：竖直红石三件套（原创）
+		registerVerticalRedstone();
 		// 熔炉燃料（验收反馈拍板）：羊毛系 32 个方块每个 300 tick（同木板）。
 		// 原版羊毛本身不是熔炉燃料，仅本 mod 的羊毛系半砖/楼梯可当燃料（矿物/混凝土系不注册）。
 		FuelValueEvents.BUILD.register((builder, context) -> {
@@ -81,6 +87,29 @@ public final class MtvBlocks {
 		String path = basePath(base) + "_stairs";
 		finish(path, properties(path, base),
 				props -> new ModStairBlock(base.defaultBlockState(), props), flammable);
+	}
+
+	/**
+	 * 计划 4：竖直红石三件套（原创，完整 1×1×1 立方体、6 向放置）。
+	 * isRedstoneConductor=false：保持原版红石粉/二极管的元件语义（信号不穿块），
+	 * 完整立方体默认谓词为 isCollisionShapeFullBlock，须显式关掉。
+	 */
+	private static void registerVerticalRedstone() {
+		finish("vertical_redstone", redstoneProperties("vertical_redstone", Blocks.REDSTONE_BLOCK),
+				props -> new VerticalRedstoneBlock(props), false);
+		finish("vertical_repeater", redstoneProperties("vertical_repeater", Blocks.REPEATER),
+				props -> new VerticalRepeaterBlock(props), false);
+		finish("vertical_comparator", redstoneProperties("vertical_comparator", Blocks.COMPARATOR),
+				props -> new VerticalComparatorBlock(props), false);
+		// BlockEntity 类型依赖方块实例，须在方块注册之后
+		VerticalComparatorBlockEntity.registerType(ALL.get("vertical_comparator"));
+	}
+
+	/** 竖直红石系属性：复制对应原版方块（音效/硬度/工具需求），关掉导体谓词。 */
+	private static BlockBehaviour.Properties redstoneProperties(String path, Block base) {
+		return BlockBehaviour.Properties.ofFullCopy(base)
+				.setId(ResourceKey.create(Registries.BLOCK, MoreThingsVanilla.id(path)))
+				.isRedstoneConductor((state, level, pos) -> false);
 	}
 
 	/** 26.2：Block 构造要求 properties 已带 id（原版 Blocks.register 同序：setId → 构造 → 注册）。 */

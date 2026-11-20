@@ -1,0 +1,21 @@
+{
+	"variants": {
+		"power=0": {"model": "more-things-vanilla:block/vertical_redstone_0"},
+		"power=1": {"model": "more-things-vanilla:block/vertical_redstone_1"},
+		"power=2": {"model": "more-things-vanilla:block/vertical_redstone_2"},
+		"power=3": {"model": "more-things-vanilla:block/vertical_redstone_3"},
+		"power=4": {"model": "more-things-vanilla:block/vertical_redstone_4"},
+		"power=5": {"model": "more-things-vanilla:block/vertical_redstone_5"},
+		"power=6": {"model": "more-things-vanilla:block/vertical_redstone_6"},
+		"power=7": {"model": "more-things-vanilla:block/vertical_redstone_7"},
+		"power=8": {"model": "more-things-vanilla:block/vertical_redstone_8"},
+		"power=9": {"model": "more-things-vanilla:block/vertical_redstone_9"},
+		"power=10": {"model": "more-things-vanilla:block/vertical_redstone_10"},
+		"power=11": {"model": "more-things-vanilla:block/vertical_redstone_11"},
+		"power=12": {"model": "more-things-vanilla:block/vertical_redstone_12"},
+		"power=13": {"model": "more-things-vanilla:block/vertical_redstone_13"},
+		"power=14": {"model": "more-things-vanilla:block/vertical_redstone_14"},
+		"power=15": {"model": "more-things-vanilla:block/vertical_redstone_15"}
+	}
+}
+

@@ -18,7 +18,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Blocks;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +39,8 @@ public final class MoreThingsVanilla implements ModInitializer {
 				CREATIVE_TAB_KEY,
 				FabricCreativeModeTab.builder()
 						.title(Component.translatable("itemGroup.more_things_vanilla"))
-						// 图标暂用铁块；计划 4 竖直红石完成后可换为竖直红石物品
-						.icon(() -> new ItemStack(Blocks.IRON_BLOCK))
+						// 计划 4 拍板：图标换为竖直红石物品（supplier 惰性求值，晚于方块注册）
+						.icon(() -> new ItemStack(MtvBlocks.ALL.get("vertical_redstone")))
 						.displayItems((context, output) -> TAB_ITEMS.forEach(output::accept))
 						.build()
 		);

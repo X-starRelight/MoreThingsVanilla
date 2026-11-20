@@ -1,0 +1,29 @@
+{
+	"variants": {
+		"facing=down,mode=compare,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=down,mode=compare,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=down,mode=subtract,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=down,mode=subtract,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=east,mode=compare,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=east,mode=compare,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=east,mode=subtract,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=east,mode=subtract,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=north,mode=compare,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=north,mode=compare,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=north,mode=subtract,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=north,mode=subtract,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=south,mode=compare,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=south,mode=compare,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=south,mode=subtract,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=south,mode=subtract,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=up,mode=compare,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=up,mode=compare,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=up,mode=subtract,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=up,mode=subtract,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=west,mode=compare,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=west,mode=compare,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"},
+		"facing=west,mode=subtract,powered=false": {"model": "more-things-vanilla:block/vertical_comparator"},
+		"facing=west,mode=subtract,powered=true": {"model": "more-things-vanilla:block/vertical_comparator_on"}
+	}
+}
+

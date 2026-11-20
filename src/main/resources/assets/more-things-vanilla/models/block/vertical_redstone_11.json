@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:block/cube_all",
+	"textures": {
+		"all": "more-things-vanilla:block/vertical_redstone_11"
+	}
+}

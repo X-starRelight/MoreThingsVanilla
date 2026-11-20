@@ -11,9 +11,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $ns = 'more-things-vanilla'
 $root = Join-Path $ProjectRoot 'src\main\resources'
 
-# id 表与前两个脚本共享：枚举已生成的 blockstate 文件名（79 条）
+# id 表与前两个脚本共享：枚举已生成的 blockstate 文件名（82 条，含计划 4 竖直红石三件套）
 $ids = @(Get-ChildItem (Join-Path $root "assets\$ns\blockstates") -Filter *.json | ForEach-Object BaseName)
-if ($ids.Count -ne 79) { throw "blockstate ids $($ids.Count) != 79" }
+if ($ids.Count -ne 82) { throw "blockstate ids $($ids.Count) != 82" }
 $idSet = @{}
 foreach ($i in $ids) { $idSet[$i] = $true }
 
@@ -40,8 +40,8 @@ try {
 		elseif ($j.result -and $j.result.id) { $resultId = $j.result.id }
 		if (-not $resultId -or $resultId -notlike 'minecraft:*') { continue }
 		$pathPart = ($resultId -split ':', 2)[1]
-		if (-not $idSet.ContainsKey($pathPart)) { continue }   # result id 不在 79 表内 → 不是我们的方块
-		# 命中：79 个 id 逐个带引号精确替换（基块如 white_wool 不在表内，天然不动）
+		if (-not $idSet.ContainsKey($pathPart)) { continue }   # result id 不在 82 表内 → 不是我们的方块
+		# 命中：82 个 id 逐个带引号精确替换（基块如 white_wool 不在表内，天然不动）
 		foreach ($id in $ids) {
 			$t = $t.Replace('"minecraft:' + $id + '"', '"' + $ns + ':' + $id + '"')
 		}
@@ -135,7 +135,7 @@ foreach ($base in $minerals) {
 	Write-Utf8Json (Join-Path $recipeDir "$base`_stairs_from_$base`_stonecutting.json") ($minStairsScTpl.Replace('@BASE@', $base).Replace('@NS@', $ns))
 }
 
-# ---- 3) 自校验：79 个方块每个都存在 result=我方 id 的配方（可合成性契约）----
+# ---- 3) 自校验：82 个方块每个都存在 result=我方 id 的配方（可合成性契约；计划 4 三配方已手写入 recipe 目录）----
 $covered = @{}
 foreach ($f in Get-ChildItem $recipeDir -Filter *.json) {
 	$j = ConvertFrom-Json (Get-Content $f.FullName -Raw)

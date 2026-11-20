@@ -2,7 +2,7 @@
 	[string]$MergedJar = "$env:USERPROFILE\.gradle\caches\fabric-loom\26.2\minecraft-merged.jar",
 	[string]$ProjectRoot = (Split-Path $PSScriptRoot -Parent)
 )
-# 用途：生成 79 个战利品表 JSON（39 半砖 + 40 楼梯）与 8 个方块标签 JSON，全部逐字落盘。
+# 用途：生成 82 个战利品表 JSON（39 半砖 + 40 楼梯 + 计划 4 竖直红石三件套）与 9 个方块标签 JSON，全部逐字落盘。
 # 格式：战利品表沿用 jar 模板的 2 空格缩进；标签由 Write-Tag 生成，使用 TAB 缩进。
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -11,7 +11,7 @@ $root = Join-Path $ProjectRoot 'src\main\resources'
 
 # id 表与 gen-block-assets.ps1 共享：直接枚举已生成的 blockstate 文件名
 $ids = @(Get-ChildItem (Join-Path $root "assets\$ns\blockstates") -Filter *.json | ForEach-Object BaseName)
-if ($ids.Count -ne 79) { throw "blockstate ids $($ids.Count) != 79" }
+if ($ids.Count -ne 82) { throw "blockstate ids $($ids.Count) != 82" }
 $slabs  = @($ids | Where-Object { $_ -like '*_slab' })
 $stairs = @($ids | Where-Object { $_ -like '*_stairs' })
 if ($slabs.Count -ne 39 -or $stairs.Count -ne 40) { throw "slab=$($slabs.Count) stair=$($stairs.Count) != 39/40" }
@@ -46,7 +46,14 @@ try {
 		$t = $t.Replace('"minecraft:stone_stairs"', '"' + $ns + ':' + $id + '"')
 		Write-Utf8Json (Join-Path $lootDir "$id.json") $t
 	}
-	if ((Get-ChildItem $lootDir -Filter *.json).Count -ne 79) { throw 'loot count != 79' }
+	# 计划 4：竖直红石三件套（复用 26.2 repeater 自掉落模板，字面替换 id；原版三块均不进挖掘/工具标签，故标签不动）
+	$vertTpl = Read-JarEntry 'data/minecraft/loot_table/blocks/repeater.json'
+	foreach ($id in @('vertical_redstone', 'vertical_repeater', 'vertical_comparator')) {
+		$t = $vertTpl.Replace('"minecraft:blocks/repeater"', '"' + $ns + ':blocks/' + $id + '"')
+		$t = $t.Replace('"minecraft:repeater"', '"' + $ns + ':' + $id + '"')
+		Write-Utf8Json (Join-Path $lootDir "$id.json") $t
+	}
+	if ((Get-ChildItem $lootDir -Filter *.json).Count -ne 82) { throw 'loot count != 82' }
 
 	# ---- 标签（$zip 保持打开，下面要读 jar 内原版标签）----
 	function Write-Tag([string]$path, [string[]]$values) {
@@ -101,9 +108,9 @@ finally {
 
 # 3) 打印每个标签文件条数（人工核对）
 $tagFiles = @(Get-ChildItem $tagDir -Recurse -Filter *.json)
-if ($tagFiles.Count -ne 8) { throw "tag file count $($tagFiles.Count) != 8" }
+if ($tagFiles.Count -ne 9) { throw "tag file count $($tagFiles.Count) != 9" }
 foreach ($f in $tagFiles) {
 	$n = (ConvertFrom-Json (Get-Content $f.FullName -Raw)).values.Count
 	Write-Output ("tag {0}: {1}" -f $f.Name, $n)
 }
-Write-Output 'OK: loot=79 tags written'
+Write-Output 'OK: loot=82 tags written'
