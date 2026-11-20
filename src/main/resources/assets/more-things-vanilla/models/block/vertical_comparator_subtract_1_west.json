@@ -1,0 +1,9 @@
+{
+	"parent": "more-things-vanilla:block/vertical_diode_facing_west",
+	"textures": {
+		"side": "more-things-vanilla:block/vertical_comparator_subtract_1_side",
+		"input": "more-things-vanilla:block/vertical_comparator_subtract_1_in",
+		"output": "more-things-vanilla:block/vertical_comparator_subtract_1_out",
+		"particle": "#side"
+	}
+}

@@ -1,0 +1,18 @@
+{
+	"parent": "minecraft:block/block",
+	"elements": [
+		{
+			"from": [0, 0, 0],
+			"to": [16, 16, 16],
+			"faces": {
+				"down": {"texture": "#side", "cullface": "down", "rotation": 180},
+				"up": {"texture": "#side", "cullface": "up", "rotation": 0},
+				"north": {"texture": "#output", "cullface": "north"},
+				"east": {"texture": "#side", "cullface": "east", "rotation": 90},
+				"south": {"texture": "#input", "cullface": "south"},
+				"west": {"texture": "#side", "cullface": "west", "rotation": 270}
+			}
+		}
+	]
+}
+

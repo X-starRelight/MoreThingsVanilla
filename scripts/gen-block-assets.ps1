@@ -98,6 +98,49 @@ function Write-JsonFile([string]$relPath, [string]$text) {
 	New-Item -ItemType Directory -Force -Path (Split-Path $p) | Out-Null
 	[System.IO.File]::WriteAllText($p, $text + "`n", (New-Object System.Text.UTF8Encoding $false))
 }
+
+# 清理历史命名的竖直三件套生成物（旧 *_on 残留会使计数断言失败）
+foreach ($sub in @('models\block', 'textures\block')) {
+	$dir = Join-Path $outRoot $sub
+	if (Test-Path $dir) {
+		Get-ChildItem $dir -Filter 'vertical_*.json' -ErrorAction SilentlyContinue | Remove-Item -Force
+		Get-ChildItem $dir -Filter 'vertical_*.png' -ErrorAction SilentlyContinue | Remove-Item -Force
+	}
+}
+
+# ---- 竖直二极管族共享父模型（6 朝向；面贴图变量 side/input/output 由子模型提供）----
+# rotation = 贴图在面内按外视屏幕顺时针旋转的度数（由 26.2 FaceBakery/Quadrant 源码推导），
+# 使无旋转时指向贴图上方的箭头转到 FACING 方向。
+$facings = @('down', 'east', 'north', 'south', 'up', 'west')
+$opposites = @{ down = 'up'; up = 'down'; north = 'south'; south = 'north'; east = 'west'; west = 'east' }
+$sideRotations = [ordered]@{
+	north = @{ west = 270; east = 90; up = 0; down = 180 }
+	south = @{ west = 90; east = 270; up = 180; down = 0 }
+	east  = @{ north = 270; south = 90; up = 90; down = 90 }
+	west  = @{ north = 90; south = 270; up = 270; down = 270 }
+	up    = @{ north = 0; south = 0; east = 0; west = 0 }
+	down  = @{ north = 180; south = 180; east = 180; west = 180 }
+}
+$faceOrder = @('down', 'up', 'north', 'east', 'south', 'west')
+foreach ($f in $facings) {
+	$sb = [System.Text.StringBuilder]::new()
+	[void]$sb.Append("{`n`t`"parent`": `"minecraft:block/block`",`n`t`"elements`": [`n`t`t{`n`t`t`t`"from`": [0, 0, 0],`n`t`t`t`"to`": [16, 16, 16],`n`t`t`t`"faces`": {`n")
+	for ($i = 0; $i -lt $faceOrder.Count; $i++) {
+		$face = $faceOrder[$i]
+		$comma = if ($i -lt $faceOrder.Count - 1) { ',' } else { '' }
+		if ($face -eq $f) {
+			$line = '"' + $face + '": {"texture": "#output", "cullface": "' + $face + '"}'
+		} elseif ($face -eq $opposites[$f]) {
+			$line = '"' + $face + '": {"texture": "#input", "cullface": "' + $face + '"}'
+		} else {
+			$line = '"' + $face + '": {"texture": "#side", "cullface": "' + $face + '", "rotation": ' + $sideRotations[$f][$face] + '}'
+		}
+		[void]$sb.Append("`t`t`t`t" + $line + $comma + "`n")
+	}
+	[void]$sb.Append("`t`t`t}`n`t`t}`n`t]`n}`n")
+	Write-JsonFile "models\block\vertical_diode_facing_$f.json" $sb.ToString()
+	$counts.model++
+}
 foreach ($e in $entries) {
 	$id = $e.id; $base = $e.base
 	if ($e.kind -eq 'slab') {
@@ -120,31 +163,46 @@ foreach ($e in $entries) {
 		Write-JsonFile "items\$id.json" "{`n`t`"model`": {`n`t`t`"type`": `"minecraft:model`",`n`t`t`"model`": `"more-things-vanilla:block/${id}_0`"`n`t}`n}"
 		$counts.blockstate++; $counts.model += 16; $counts.item++
 	} elseif ($e.kind -eq 'vertical_repeater' -or $e.kind -eq 'vertical_comparator') {
-		# 亮/灭两张面模型 + 全属性交叉 blockstate（变体一律不旋转——立方体六面同图）
-		Write-JsonFile "models\block\$id.json"    ("{`n`t`"parent`": `"minecraft:block/cube_all`",`n`t`"textures`": {`n`t`t`"all`": `"more-things-vanilla:block/$id`"`n`t}`n}")
-		Write-JsonFile "models\block\${id}_on.json" ("{`n`t`"parent`": `"minecraft:block/cube_all`",`n`t`"textures`": {`n`t`t`"all`": `"more-things-vanilla:block/${id}_on`"`n`t}`n}")
-		$facings = @('down', 'east', 'north', 'south', 'up', 'west')
+		# 状态全区分 + 方向箭头：每个 (状态 × facing) 一个完整立方体模型。
+		# 几何与面 rotation 在共享父模型 vertical_diode_facing_<f>，子模型仅提供三张贴图。
+		$states = @()
+		if ($e.kind -eq 'vertical_repeater') {
+			foreach ($d in 1..4) { foreach ($l in @($false, $true)) { foreach ($pw in @($false, $true)) {
+				$states += "vertical_repeater_d${d}_$([int]$l)$([int]$pw)"
+			} } }
+		} else {
+			foreach ($m in @('compare', 'subtract')) { foreach ($pw in @($false, $true)) {
+				$states += "vertical_comparator_${m}_$([int]$pw)"
+			} }
+		}
 		$sb = [System.Text.StringBuilder]::new()
 		[void]$sb.Append("{`n`t`"variants`": {`n")
-		$keys = @()
+		$keys = @(); $models = @()
 		if ($e.kind -eq 'vertical_repeater') {
 			foreach ($d in 1..4) { foreach ($f in $facings) { foreach ($l in @($false, $true)) { foreach ($pw in @($false, $true)) {
 				$keys += "delay=$d,facing=$f,locked=$(([string]$l).ToLower()),powered=$(([string]$pw).ToLower())"
+				$models += "vertical_repeater_d${d}_$([int]$l)$([int]$pw)_$f"
 			} } } }
 		} else {
 			foreach ($f in $facings) { foreach ($m in @('compare', 'subtract')) { foreach ($pw in @($false, $true)) {
 				$keys += "facing=$f,mode=$m,powered=$(([string]$pw).ToLower())"
+				$models += "vertical_comparator_${m}_$([int]$pw)_$f"
 			} } }
 		}
 		for ($i = 0; $i -lt $keys.Count; $i++) {
 			$comma = if ($i -lt $keys.Count - 1) { ',' } else { '' }
-			$model = if ($keys[$i] -match 'powered=true') { "${id}_on" } else { $id }
-			[void]$sb.Append("`t`t`"$($keys[$i])`": {`"model`": `"more-things-vanilla:block/$model`"}$comma`n")
+			[void]$sb.Append("`t`t`"$($keys[$i])`": {`"model`": `"more-things-vanilla:block/$($models[$i])`"}$comma`n")
 		}
 		[void]$sb.Append("`t}`n}`n")
 		Write-JsonFile "blockstates\$id.json" $sb.ToString()
-		Write-JsonFile "items\$id.json" "{`n`t`"model`": {`n`t`t`"type`": `"minecraft:model`",`n`t`t`"model`": `"more-things-vanilla:block/$id`"`n`t}`n}"
-		$counts.blockstate++; $counts.model += 2; $counts.item++
+		foreach ($state in $states) { foreach ($f in $facings) {
+			$json = "{`n`t`"parent`": `"more-things-vanilla:block/vertical_diode_facing_$f`",`n`t`"textures`": {`n`t`t`"side`": `"more-things-vanilla:block/${state}_side`",`n`t`t`"input`": `"more-things-vanilla:block/${state}_in`",`n`t`t`"output`": `"more-things-vanilla:block/${state}_out`",`n`t`t`"particle`": `"#side`"`n`t}`n}"
+			Write-JsonFile "models\block\${state}_$f.json" $json
+			$counts.model++
+		} }
+		$defaultModel = if ($e.kind -eq 'vertical_repeater') { 'vertical_repeater_d1_00_north' } else { 'vertical_comparator_compare_0_north' }
+		Write-JsonFile "items\$id.json" "{`n`t`"model`": {`n`t`t`"type`": `"minecraft:model`",`n`t`t`"model`": `"more-things-vanilla:block/$defaultModel`"`n`t}`n}"
+		$counts.blockstate++; $counts.item++
 	} else {
 		Write-JsonFile "blockstates\$id.json" (Convert-Template $tplStairsBlockstate 'stone_stairs' 'stone' $id $base)
 		Write-JsonFile "models\block\$id.json" (Convert-Template $tplStairsModel 'stone_stairs' 'stone' $id $base)
@@ -154,11 +212,11 @@ foreach ($e in $entries) {
 		$counts.blockstate++; $counts.model += 3; $counts.item++
 	}
 }
-if ($counts.blockstate -ne 82 -or $counts.model -ne 218 -or $counts.item -ne 82) {
+if ($counts.blockstate -ne 82 -or $counts.model -ne 340 -or $counts.item -ne 82) {
 	throw "count mismatch: $($counts | ConvertTo-Json -Compress)"
 }
 
-# ---- 计划 4 占位贴图（System.Drawing 脚本绘制，16 张等级数字图 + 中继器/比较器 4 张面图）----
+# ---- 计划 4 占位贴图（System.Drawing 绘制：16 张等级数字图 + 中继器 16 状态×3 面 + 比较器 4 状态×3 面，状态全区分+方向箭头）----
 Add-Type -AssemblyName System.Drawing
 $blockTexDir = Join-Path $outRoot 'textures\block'
 New-Item -ItemType Directory -Force -Path $blockTexDir | Out-Null
@@ -194,32 +252,95 @@ function Draw-LevelTexture([string]$path, [int]$level) {
 	$g.Dispose()
 	Save-Bitmap $bmp $path
 }
-function Draw-ComponentTexture([string]$path, [System.Drawing.Color]$bg, [bool]$on, [bool]$triangular) {
-	# 中继器/比较器顶视占位面图：石/石英底 + 红色导线与火把圆点（点亮时变亮红）
-	$wire = if ($on) { [System.Drawing.Color]::FromArgb(255, 255, 60, 60) } else { [System.Drawing.Color]::FromArgb(255, 110, 0, 0) }
+function Draw-FitLabel([System.Drawing.Graphics]$g, [string]$text, [double]$cx, [double]$top, [double]$maxW, [double]$maxH) {
+	$size = 9.0
+	$font = New-Object System.Drawing.Font('Consolas', $size, [System.Drawing.FontStyle]::Bold)
+	$sz = $g.MeasureString($text, $font)
+	while (($sz.Width -gt $maxW -or $sz.Height -gt $maxH) -and $size -gt 4.0) {
+		$size -= 0.5
+		$font.Dispose()
+		$font = New-Object System.Drawing.Font('Consolas', $size, [System.Drawing.FontStyle]::Bold)
+		$sz = $g.MeasureString($text, $font)
+	}
+	$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 25, 25, 25))
+	$g.DrawString($text, $font, $brush, ($cx - $sz.Width / 2.0), ($top + ($maxH - $sz.Height) / 2.0))
+	$brush.Dispose()
+	$font.Dispose()
+}
+function Get-WireColor([bool]$on) {
+	if ($on) { return [System.Drawing.Color]::FromArgb(255, 255, 60, 60) }
+	return [System.Drawing.Color]::FromArgb(255, 110, 0, 0)
+}
+function Draw-DiodeSideTexture([string]$path, [System.Drawing.Color]$bg, [bool]$on, [string]$label, [int]$pips, [bool]$locked) {
+	# 侧面：状态区（中继器=delay 圆点+锁定横条；比较器=模式文字）+ 朝上的方向箭头（点亮变亮红）
+	$wire = Get-WireColor $on
 	$bmp = New-Object System.Drawing.Bitmap 16, 16
 	$g = [System.Drawing.Graphics]::FromImage($bmp)
 	$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+	$g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAlias
 	$g.Clear($bg)
 	$border = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 90, 90, 90))
 	$g.DrawRectangle($border, 0, 0, 15, 15)
 	$border.Dispose()
-	$pen = New-Object System.Drawing.Pen ($wire, 2.0)
-	if ($triangular) {
-		[System.Drawing.PointF[]]$pts = @(
-			(New-Object System.Drawing.PointF(8, 4)),
-			(New-Object System.Drawing.PointF(4, 12)),
-			(New-Object System.Drawing.PointF(12, 12))
-		)
-		$g.DrawPolygon($pen, $pts)
-	} else {
-		$g.DrawLine($pen, 8.0, 5.0, 8.0, 12.0)
+	if ($label -ne '') {
+		Draw-FitLabel $g $label 8.0 0.0 14.0 7.0
+	} elseif ($pips -gt 0) {
+		$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 35, 35, 35))
+		$w = $pips * 3 - 1
+		$x0 = [Math]::Floor((16 - $w) / 2.0)
+		for ($i = 0; $i -lt $pips; $i++) { $g.FillRectangle($brush, ($x0 + $i * 3), 1, 2, 2) }
+		$brush.Dispose()
 	}
-	$pen.Dispose()
+	$arrowTop = if ($label -ne '') { 8.0 } else { 5.0 }
+	$arrowBase = if ($label -ne '') { 14.0 } else { 12.0 }
+	$halfW = if ($label -ne '') { 3.0 } else { 4.0 }
 	$brush = New-Object System.Drawing.SolidBrush ($wire)
-	$g.FillEllipse($brush, 6, 2, 4, 4)
-	$g.FillEllipse($brush, 6, 11, 4, 4)
+	[System.Drawing.PointF[]]$arrow = @(
+		([System.Drawing.PointF]::new(8.0, $arrowTop)),
+		([System.Drawing.PointF]::new(8.0 - $halfW, $arrowBase)),
+		([System.Drawing.PointF]::new(8.0 + $halfW, $arrowBase))
+	)
+	$g.FillPolygon($brush, $arrow)
 	$brush.Dispose()
+	if ($locked) {
+		$bar = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 35, 35, 35))
+		$g.FillRectangle($bar, 1, 14, 14, 2)
+		$bar.Dispose()
+	}
+	$g.Dispose()
+	Save-Bitmap $bmp $path
+}
+function Draw-DiodeEndTexture([string]$path, [System.Drawing.Color]$bg, [bool]$on, [string]$label, [bool]$isOutput) {
+	# 输入/输出面：顶部状态文字 + 底部方向标记（输出=实心朝上箭头，输入=空心朝下箭头）
+	$wire = Get-WireColor $on
+	$bmp = New-Object System.Drawing.Bitmap 16, 16
+	$g = [System.Drawing.Graphics]::FromImage($bmp)
+	$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+	$g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAlias
+	$g.Clear($bg)
+	$border = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 90, 90, 90))
+	$g.DrawRectangle($border, 0, 0, 15, 15)
+	$border.Dispose()
+	Draw-FitLabel $g $label 8.0 0.0 14.0 7.0
+	if ($isOutput) {
+		$brush = New-Object System.Drawing.SolidBrush ($wire)
+		[System.Drawing.PointF[]]$arrow = @(
+			([System.Drawing.PointF]::new(8.0, 8.0)),
+			([System.Drawing.PointF]::new(4.0, 14.0)),
+			([System.Drawing.PointF]::new(12.0, 14.0))
+		)
+		$g.FillPolygon($brush, $arrow)
+		$brush.Dispose()
+	} else {
+		$pen = New-Object System.Drawing.Pen ($wire, 2.0)
+		[System.Drawing.PointF[]]$arrow = @(
+			([System.Drawing.PointF]::new(8.0, 14.0)),
+			([System.Drawing.PointF]::new(4.0, 8.0)),
+			([System.Drawing.PointF]::new(12.0, 8.0))
+		)
+		$g.DrawPolygon($pen, $arrow)
+		$pen.Dispose()
+	}
 	$g.Dispose()
 	Save-Bitmap $bmp $path
 }
@@ -228,12 +349,22 @@ for ($p = 0; $p -le 15; $p++) {
 }
 $stoneBg = [System.Drawing.Color]::FromArgb(255, 128, 128, 128)
 $quartzBg = [System.Drawing.Color]::FromArgb(255, 220, 218, 210)
-Draw-ComponentTexture (Join-Path $blockTexDir 'vertical_repeater.png') $stoneBg $false $false
-Draw-ComponentTexture (Join-Path $blockTexDir 'vertical_repeater_on.png') $stoneBg $true $false
-Draw-ComponentTexture (Join-Path $blockTexDir 'vertical_comparator.png') $quartzBg $false $true
-Draw-ComponentTexture (Join-Path $blockTexDir 'vertical_comparator_on.png') $quartzBg $true $true
+foreach ($d in 1..4) { foreach ($l in @($false, $true)) { foreach ($pw in @($false, $true)) {
+	$state = "vertical_repeater_d${d}_$([int]$l)$([int]$pw)"
+	$label = "$d" + $(if ($l) { 'L' } else { '' })
+	Draw-DiodeSideTexture (Join-Path $blockTexDir "$($state)_side.png") $stoneBg $pw '' $d $l
+	Draw-DiodeEndTexture (Join-Path $blockTexDir "$($state)_in.png") $stoneBg $pw $label $false
+	Draw-DiodeEndTexture (Join-Path $blockTexDir "$($state)_out.png") $stoneBg $pw $label $true
+} } }
+foreach ($m in @('compare', 'subtract')) { foreach ($pw in @($false, $true)) {
+	$state = "vertical_comparator_${m}_$([int]$pw)"
+	$label = if ($m -eq 'compare') { 'C' } else { 'S' }
+	Draw-DiodeSideTexture (Join-Path $blockTexDir "$($state)_side.png") $quartzBg $pw $label 0 $false
+	Draw-DiodeEndTexture (Join-Path $blockTexDir "$($state)_in.png") $quartzBg $pw $label $false
+	Draw-DiodeEndTexture (Join-Path $blockTexDir "$($state)_out.png") $quartzBg $pw $label $true
+} }
 $blockTexCount = @(Get-ChildItem $blockTexDir -Filter *.png).Count
-if ($blockTexCount -ne 20) { throw "block texture count $blockTexCount != 20" }
+if ($blockTexCount -ne 76) { throw "block texture count $blockTexCount != 76" }
 
 # ---- 语言条目（全量确定性重写，含计划 1 的标签页名称）----
 $tabZh = '更多内容-原版'; $tabEn = 'More Things Vanilla'
@@ -254,4 +385,4 @@ foreach ($lang in @('zh_cn', 'en_us')) {
 	$blockKeys = $parsed.PSObject.Properties.Name | Where-Object { $_ -like "block.${ns}.*" }
 	if ($blockKeys.Count -ne 82) { throw "$lang block entries $($blockKeys.Count) != 82" }
 }
-Write-Output "OK: blockstates=$($counts.blockstate) models=$($counts.model) items=$($counts.item) textures=20 lang=82x2"
+Write-Output "OK: blockstates=$($counts.blockstate) models=$($counts.model) items=$($counts.item) textures=$blockTexCount lang=82x2"

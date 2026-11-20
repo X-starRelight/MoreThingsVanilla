@@ -1,6 +1,6 @@
 {
 	"model": {
 		"type": "minecraft:model",
-		"model": "more-things-vanilla:block/vertical_comparator"
+		"model": "more-things-vanilla:block/vertical_comparator_compare_0_north"
 	}
 }
