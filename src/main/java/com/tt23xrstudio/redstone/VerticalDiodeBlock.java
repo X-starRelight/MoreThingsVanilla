@@ -217,9 +217,9 @@ public abstract class VerticalDiodeBlock extends Block {
 
 	@Override
 	protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
-		if (!oldState.is(state.getBlock())) {
-			this.updateNeighborsInFront(level, pos, state);
-		}
+		// 与原版 DiodeBlock 一致：无守卫。onPlace 在服务端每次 setBlock（flag 不含 512）都会被调用，
+		// POWERED 翻转（flag 2）正是靠这条路径通知输出侧邻居重算电平。
+		this.updateNeighborsInFront(level, pos, state);
 	}
 
 	@Override

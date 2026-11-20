@@ -500,4 +500,85 @@ public final class MtvGameTests {
 		}
 		helper.succeed();
 	}
+
+	// ==================== 计划 4 复现（用户反馈：中继器/比较器不输出）：端到端 输出→红石粉 ====================
+
+	/** 对照组：原版中继器——粉先放、电源后放，POWERED 翻转后粉必须重算亮起。 */
+	@GameTest
+	public void vanillaRepeaterPowersWireEndToEnd(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(3, 0, 3), Blocks.STONE);
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		// 原版 FACING=输入方向（水平 4 向属性）：输入朝西（电源在西），输出朝东接粉
+		helper.setBlock(new BlockPos(3, 1, 3), Blocks.REPEATER.defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, Direction.WEST));
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		// 电源最后放：翻转 POWERED 时粉已在场
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		helper.succeedWhen(() -> {
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(p, 15, "vanilla wire after repeater powered");
+		});
+	}
+
+	/** 复现：竖直中继器同布局——粉先放、电源后放，断言粉亮起。 */
+	@GameTest
+	public void verticalRepeaterPowersWireEndToEnd(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		// 竖直版 FACING=输出方向：输出朝东接粉，输入在西
+		BlockPos rep = new BlockPos(3, 1, 3);
+		helper.setBlock(rep, verticalBlock("vertical_repeater").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, Direction.EAST));
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		helper.succeedWhen(() -> {
+			// 1) 中继器自身：POWERED 翻转 + 输出（读自身坐标，dir=观察者(输出侧东)→源=WEST）
+			int out = helper.getLevel().getSignal(helper.absolutePos(rep), Direction.WEST);
+			helper.assertValueEqual(out, 15, "repeater own output");
+			// 2) 粉：翻转后是否被通知重算
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(p, 15, "wire after vertical repeater powered");
+		});
+	}
+
+	/** 复现：竖直比较器同布局——粉先放、电源后放，断言粉亮起。 */
+	@GameTest
+	public void verticalComparatorPowersWireEndToEnd(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		helper.setBlock(new BlockPos(3, 1, 3), verticalBlock("vertical_comparator").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, Direction.EAST));
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		helper.succeedWhen(() -> {
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(15, p, "wire after vertical comparator powered");
+		});
+	}
+
+	/** 真实放置流：点击红石块东面放置中继器（输入端贴电源），粉先在场，断言粉亮起。 */
+	@GameTest
+	public void verticalRepeaterItemPlacedAgainstPowerPowersWire(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		Item repeater = BuiltInRegistries.ITEM.getValue(MoreThingsVanilla.id("vertical_repeater"));
+		Player player = helper.makeMockPlayer(GameType.CREATIVE);
+		// 点击红石块的东面 → 目标 (3,1,3)，FACING=EAST（输出朝东），输入端贴着红石块
+		BlockPos target = new BlockPos(3, 1, 3);
+		Vec3 click = new Vec3(helper.absolutePos(target).getX() + 0.5 - Direction.EAST.getStepX() * 0.5,
+				helper.absolutePos(target).getY() + 0.5 - Direction.EAST.getStepY() * 0.5,
+				helper.absolutePos(target).getZ() + 0.5 - Direction.EAST.getStepZ() * 0.5);
+		BlockHitResult hit = new BlockHitResult(click, Direction.EAST, helper.absolutePos(new BlockPos(2, 1, 3)), false);
+		InteractionResult result = new ItemStack(repeater).useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+		helper.assertTrue(result.consumesAction(), "placement failed: " + result);
+		helper.assertValueEqual(Direction.EAST, helper.getBlockState(target).getValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING), "facing");
+		helper.succeedWhen(() -> {
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(15, p, "wire after item-placed vertical repeater powered");
+		});
+	}
 }
