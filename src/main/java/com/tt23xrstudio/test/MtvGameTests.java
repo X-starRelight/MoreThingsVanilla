@@ -21,7 +21,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.GameType;
@@ -579,6 +581,120 @@ public final class MtvGameTests {
 			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
 					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
 			helper.assertValueEqual(15, p, "wire after item-placed vertical repeater powered");
+		});
+	}
+
+	// ==================== 复现（用户反馈）：比较器模式切换与侧输入 ====================
+
+	/** 复现 A：compare 模式下侧输入=后端 15 时必须输出 15（不得出现减法效果）。 */
+	@GameTest
+	public void verticalComparatorCompareIgnoresSideInput(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		BlockPos comp = new BlockPos(3, 1, 3);
+		helper.setBlock(comp, verticalBlock("vertical_comparator").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, Direction.EAST));
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);   // 后端 15
+		helper.setBlock(new BlockPos(3, 1, 4), Blocks.REDSTONE_BLOCK);   // 侧面（南，EAST 的顺时针侧）15
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		helper.succeedWhen(() -> {
+			int out = helper.getLevel().getSignal(helper.absolutePos(comp), Direction.WEST);
+			helper.assertValueEqual(15, out, "compare mode output with side == rear");
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(15, p, "wire in compare mode");
+		});
+	}
+
+	/** 复现 B：compare 下右键切到 substitute，输出应自动变为 0（15-15），粉随之熄灭。 */
+	@GameTest
+	public void verticalComparatorModeSwitchUpdatesOutput(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		BlockPos comp = new BlockPos(3, 1, 3);
+		helper.setBlock(comp, verticalBlock("vertical_comparator").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, Direction.EAST));
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		helper.setBlock(new BlockPos(3, 1, 4), Blocks.REDSTONE_BLOCK);
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		helper.runAfterDelay(5, () -> {
+			helper.assertValueEqual(15,
+					helper.getLevel().getSignal(helper.absolutePos(comp), Direction.WEST),
+					"precondition: compare outputs 15");
+			BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(helper.absolutePos(comp)),
+					Direction.EAST, helper.absolutePos(comp), false);
+			helper.getBlockState(comp).useWithoutItem(helper.getLevel(), player, hit);
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(
+					net.minecraft.world.level.block.state.properties.ComparatorMode.SUBTRACT,
+					helper.getBlockState(comp).getValue(
+							net.minecraft.world.level.block.state.properties.BlockStateProperties.MODE_COMPARATOR),
+					"mode cycled to subtract");
+			int out = helper.getLevel().getSignal(helper.absolutePos(comp), Direction.WEST);
+			helper.assertValueEqual(0, out, "subtract mode output after toggle");
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(0, p, "wire after toggle to subtract");
+		});
+	}
+
+	/** 复现 C：subtract 下右键切回 compare，输出应自动恢复 15，粉随之亮起。 */
+	@GameTest
+	public void verticalComparatorSubtractToCompareUpdatesOutput(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(4, 0, 3), Blocks.STONE);
+		BlockPos comp = new BlockPos(3, 1, 3);
+		helper.setBlock(comp, verticalBlock("vertical_comparator").defaultBlockState()
+				.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, Direction.EAST)
+				.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.MODE_COMPARATOR,
+						net.minecraft.world.level.block.state.properties.ComparatorMode.SUBTRACT));
+		helper.setBlock(new BlockPos(2, 1, 3), Blocks.REDSTONE_BLOCK);
+		helper.setBlock(new BlockPos(3, 1, 4), Blocks.REDSTONE_BLOCK);
+		helper.setBlock(new BlockPos(4, 1, 3), Blocks.REDSTONE_WIRE);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		helper.runAfterDelay(5, () -> {
+			helper.assertValueEqual(0,
+					helper.getLevel().getSignal(helper.absolutePos(comp), Direction.WEST),
+					"precondition: subtract outputs 0");
+			BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(helper.absolutePos(comp)),
+					Direction.EAST, helper.absolutePos(comp), false);
+			helper.getBlockState(comp).useWithoutItem(helper.getLevel(), player, hit);
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(
+					net.minecraft.world.level.block.state.properties.ComparatorMode.COMPARE,
+					helper.getBlockState(comp).getValue(
+							net.minecraft.world.level.block.state.properties.BlockStateProperties.MODE_COMPARATOR),
+					"mode cycled to compare");
+			int out = helper.getLevel().getSignal(helper.absolutePos(comp), Direction.WEST);
+			helper.assertValueEqual(15, out, "compare mode output after toggle");
+			int p = helper.getBlockState(new BlockPos(4, 1, 3)).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER);
+			helper.assertValueEqual(15, p, "wire after toggle to compare");
+		});
+	}
+
+	/**
+	 * 复现 D（用户反馈"检测模式不会自动变更输出的红石信号"）：
+	 * 后方容器内容变化必须通知竖直比较器重算（原版 Level.updateNeighbourForOutputSignal 只硬编码通知
+	 * Blocks.COMPARATOR，且只扫水平 4 向，竖直摆放的容器输入永远收不到通知）。
+	 */
+	@GameTest
+	public void verticalComparatorDetectsContainerContents(GameTestHelper helper) {
+		BlockPos comp = new BlockPos(3, 1, 3);
+		BlockPos chestPos = new BlockPos(3, 0, 3);
+		helper.setBlock(chestPos, Blocks.CHEST);
+		helper.setBlock(comp, verticalBlock("vertical_comparator").defaultBlockState().setValue(
+				net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, Direction.UP));
+		helper.runAfterDelay(5, () -> {
+			helper.assertValueEqual(0, helper.getLevel().getSignal(helper.absolutePos(comp), Direction.DOWN),
+					"empty chest gives no comparator output");
+			Container chest = (Container) helper.getLevel().getBlockEntity(helper.absolutePos(chestPos));
+			chest.setItem(0, new ItemStack(Items.STONE, 1));
+			chest.setChanged();
+		});
+		helper.succeedWhen(() -> {
+			int out = helper.getLevel().getSignal(helper.absolutePos(comp), Direction.DOWN);
+			helper.assertValueEqual(1, out, "comparator detects chest contents change");
 		});
 	}
 }
