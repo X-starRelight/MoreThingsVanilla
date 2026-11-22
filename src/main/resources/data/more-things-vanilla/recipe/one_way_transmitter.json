@@ -1,0 +1,13 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "redstone",
+	"ingredients": [
+		"minecraft:repeater",
+		"minecraft:redstone_torch",
+		"minecraft:redstone",
+		"minecraft:redstone"
+	],
+	"result": {
+		"id": "more-things-vanilla:one_way_transmitter"
+	}
+}

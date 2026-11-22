@@ -1,0 +1,20 @@
+{
+	"multipart": [
+		{
+			"when": {"mode": "false", "power": "0"},
+			"apply": {"model": "more-things-vanilla:block/one_way_transmitter_00"}
+		},
+		{
+			"when": {"mode": "false", "power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"},
+			"apply": {"model": "more-things-vanilla:block/one_way_transmitter_01"}
+		},
+		{
+			"when": {"mode": "true", "power": "0"},
+			"apply": {"model": "more-things-vanilla:block/one_way_transmitter_10"}
+		},
+		{
+			"when": {"mode": "true", "power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"},
+			"apply": {"model": "more-things-vanilla:block/one_way_transmitter_11"}
+		}
+	]
+}

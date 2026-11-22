@@ -846,11 +846,12 @@ public final class MtvGameTests {
 				.thenSucceed();
 	}
 
-	/** 强度透传：竖直红石链 15→14→13 输入 → 输出 13（不衰减）。 */
+	/** 延续模式强度透传：竖直红石链 15→14→13 输入 → 输出 13（不衰减）。 */
 	@GameTest
 	public void oneWayTransmitterPassesStrength(GameTestHelper helper) {
 		BlockPos transmitter = new BlockPos(5, 3, 3);
-		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter").defaultBlockState()
+				.setValue(OneWayTransmitterBlock.MODE, true));
 		helper.setBlock(new BlockPos(4, 3, 3), verticalBlock("vertical_redstone"));
 		helper.setBlock(new BlockPos(3, 3, 3), verticalBlock("vertical_redstone"));
 		helper.setBlock(new BlockPos(2, 3, 3), verticalBlock("vertical_redstone"));
@@ -870,6 +871,80 @@ public final class MtvGameTests {
 		}).thenSucceed();
 	}
 
+	/** 默认中继器模式（模式位 0）：13 级输入 → 输出恢复满级 15。 */
+	@GameTest
+	public void oneWayTransmitterRepeaterModeRestoresFullPower(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(5, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(4, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(3, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(2, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(1, 3, 3), Blocks.REDSTONE_BLOCK);
+		helper.startSequence().thenIdle(6).thenExecute(() -> {
+			BlockState state = helper.getBlockState(transmitter);
+			helper.assertValueEqual(false, state.getValue(OneWayTransmitterBlock.MODE),
+					"default mode bit is 0 (repeater)");
+			helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER),
+					"repeater mode restores full power 15");
+			helper.assertValueEqual(15,
+					helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.WEST),
+					"output 15 in repeater mode");
+			helper.assertValueEqual(0,
+					helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.EAST),
+					"input face silent");
+		}).thenSucceed();
+	}
+
+	/**
+	 * 右键切换模式（同原版比较器）：通态下立即刷新输出，15（中继器）↔ 13（延续），
+	 * 且方块状态的模式位随之翻转。
+	 */
+	@GameTest
+	public void oneWayTransmitterTogglesModeWhilePowered(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(5, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(4, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(3, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(2, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(1, 3, 3), Blocks.REDSTONE_BLOCK);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		helper.startSequence()
+				.thenIdle(6)
+				.thenExecute(() -> {
+					helper.assertValueEqual(15,
+							helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+							"precondition: repeater mode outputs 15");
+					this.toggleMode(helper, transmitter, player);
+					helper.assertValueEqual(true,
+							helper.getBlockState(transmitter).getValue(OneWayTransmitterBlock.MODE),
+							"mode bit toggled to 1 (continuation)");
+					helper.assertValueEqual(13,
+							helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+							"continuation mode refreshes output to input 13 immediately");
+					helper.assertValueEqual(13,
+							helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.WEST),
+							"output 13 right after toggle");
+				})
+				.thenExecute(() -> this.toggleMode(helper, transmitter, player))
+				.thenIdle(1)
+				.thenExecute(() -> {
+					helper.assertValueEqual(false,
+							helper.getBlockState(transmitter).getValue(OneWayTransmitterBlock.MODE),
+							"mode bit toggled back to 0 (repeater)");
+					helper.assertValueEqual(15,
+							helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+							"repeater mode restores 15 immediately");
+				})
+				.thenSucceed();
+	}
+
+	/** 模拟玩家空手右键（测试辅助）。 */
+	private void toggleMode(GameTestHelper helper, BlockPos pos, Player player) {
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(helper.absolutePos(pos)),
+				Direction.NORTH, helper.absolutePos(pos), false);
+		helper.getBlockState(pos).useWithoutItem(helper.getLevel(), player, hit);
+	}
+
 	/** 锁定期间输入强度变化（15→14，不经过 0）→ 输出同步变化，不解除锁定。 */
 	@GameTest
 	public void oneWayTransmitterLockedStrengthChanges(GameTestHelper helper) {
@@ -884,7 +959,8 @@ public final class MtvGameTests {
 		helper.setBlock(secondWire, Blocks.REDSTONE_WIRE);
 		helper.setBlock(sourceA, Blocks.REDSTONE_BLOCK);
 		helper.setBlock(sourceB, Blocks.REDSTONE_BLOCK);
-		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter").defaultBlockState()
+				.setValue(OneWayTransmitterBlock.MODE, true));
 		helper.startSequence()
 				.thenIdle(5)
 				.thenExecute(() -> {
