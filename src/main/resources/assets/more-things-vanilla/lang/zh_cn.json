@@ -82,7 +82,7 @@
 	"block.more-things-vanilla.vertical_redstone": "竖直红石",
 	"block.more-things-vanilla.vertical_repeater": "竖直红石中继器",
 	"block.more-things-vanilla.vertical_comparator": "竖直红石比较器",
-	"block.more-things-vanilla.one_way_transmitter": "单向传递器",
+	"block.more-things-vanilla.one_way_transmitter": "红石单向传递器",
 	"entity.more-things-vanilla.cushion": "坐垫",
 	"item.more-things-vanilla.black_cushion": "黑色坐垫",
 	"item.more-things-vanilla.blue_cushion": "蓝色坐垫",
@@ -104,5 +104,5 @@
 	"subtitles.entity.cushion.get_up": "离开坐垫",
 	"subtitles.entity.cushion.place": "坐垫：被放置",
 	"subtitles.entity.cushion.sit": "坐上坐垫",
-	"subtitles.block.one_way_transmitter.click": "单向传递器：模式变更"
+	"subtitles.block.one_way_transmitter.click": "红石单向传递器：模式变更"
 }

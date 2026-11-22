@@ -82,7 +82,7 @@
 	"block.more-things-vanilla.vertical_redstone": "Vertical Redstone",
 	"block.more-things-vanilla.vertical_repeater": "Vertical Redstone Repeater",
 	"block.more-things-vanilla.vertical_comparator": "Vertical Redstone Comparator",
-	"block.more-things-vanilla.one_way_transmitter": "One Way Transmitter",
+	"block.more-things-vanilla.one_way_transmitter": "Redstone One Way Transmitter",
 	"entity.more-things-vanilla.cushion": "Cushion",
 	"item.more-things-vanilla.black_cushion": "Black Cushion",
 	"item.more-things-vanilla.blue_cushion": "Blue Cushion",
@@ -104,5 +104,5 @@
 	"subtitles.entity.cushion.get_up": "Gets up from Cushion",
 	"subtitles.entity.cushion.place": "Cushion placed",
 	"subtitles.entity.cushion.sit": "Sits on Cushion",
-	"subtitles.block.one_way_transmitter.click": "One Way Transmitter clicks"
+	"subtitles.block.one_way_transmitter.click": "Redstone One Way Transmitter clicks"
 }
