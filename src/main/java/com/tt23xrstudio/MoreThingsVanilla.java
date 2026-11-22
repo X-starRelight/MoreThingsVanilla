@@ -44,9 +44,9 @@ public final class MoreThingsVanilla implements ModInitializer {
 						.displayItems((context, output) -> TAB_ITEMS.forEach(output::accept))
 						.build()
 		);
-		// 计划 2 的半砖/楼梯（占位铁块已随首个真实方块移除，见计划 1 Task 6 约定）
+		// 半砖/楼梯/竖直红石三件和单向传递器
 		MtvBlocks.registerAll();
-		// 计划 3 的坐垫（复刻 26.4：实体 + 16 色物品 + 4 音效 + 燃料）
+		// 坐垫
 		MtvCushions.registerAll();
 		LOGGER.info("MoreThingsVanilla loaded");
 	}

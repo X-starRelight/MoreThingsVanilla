@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.tt23xrstudio.MoreThingsVanilla;
+import com.tt23xrstudio.redstone.OneWayTransmitterBlock;
+import com.tt23xrstudio.redstone.OneWayTransmitterBlockEntity;
 import com.tt23xrstudio.redstone.VerticalComparatorBlock;
 import com.tt23xrstudio.redstone.VerticalComparatorBlockEntity;
 import com.tt23xrstudio.redstone.VerticalRedstoneBlock;
@@ -90,7 +92,7 @@ public final class MtvBlocks {
 	}
 
 	/**
-	 * 计划 4：竖直红石三件套（原创，完整 1×1×1 立方体、6 向放置）。
+	 * 计划 4/5：竖直红石三件套 + 单向传递器（原创，完整 1×1×1 立方体、6 向放置）。
 	 * isRedstoneConductor=false：保持原版红石粉/二极管的元件语义（信号不穿块），
 	 * 完整立方体默认谓词为 isCollisionShapeFullBlock，须显式关掉。
 	 */
@@ -101,8 +103,11 @@ public final class MtvBlocks {
 				props -> new VerticalRepeaterBlock(props), false);
 		finish("vertical_comparator", redstoneProperties("vertical_comparator", Blocks.COMPARATOR),
 				props -> new VerticalComparatorBlock(props), false);
+		finish("one_way_transmitter", redstoneProperties("one_way_transmitter", Blocks.REPEATER),
+				props -> new OneWayTransmitterBlock(props), false);
 		// BlockEntity 类型依赖方块实例，须在方块注册之后
 		VerticalComparatorBlockEntity.registerType(ALL.get("vertical_comparator"));
+		OneWayTransmitterBlockEntity.registerType(ALL.get("one_way_transmitter"));
 	}
 
 	/** 竖直红石系属性：复制对应原版方块（音效/硬度/工具需求），关掉导体谓词。 */

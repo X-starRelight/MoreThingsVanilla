@@ -2,8 +2,8 @@
 	"parent": "more-things-vanilla:block/vertical_diode_facing_east",
 	"textures": {
 		"side": "more-things-vanilla:block/vertical_repeater_d2_01_side",
-		"input": "more-things-vanilla:block/vertical_repeater_d2_01_in",
-		"output": "more-things-vanilla:block/vertical_repeater_d2_01_out",
+		"input": "more-things-vanilla:block/vertical_repeater_1_in",
+		"output": "more-things-vanilla:block/vertical_repeater_1_out",
 		"particle": "#side"
 	}
 }

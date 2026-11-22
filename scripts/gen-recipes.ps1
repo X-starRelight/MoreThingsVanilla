@@ -2,7 +2,7 @@
 	[string]$RefJar = "D:\minecraft\.minecraft\versions\26.4-snapshot-6-Fabric 0.20.0\26.4-snapshot-6-Fabric 0.20.0.jar",
 	[string]$ProjectRoot = (Split-Path $PSScriptRoot -Parent)
 )
-# 用途：生成 79 个方块的配方——手写 30 个矿物系/平滑石头配方（含矿物切石机 14 条），另从 26.4 jar 抽取 128 个羊毛/混凝土系配方。
+# 用途：生成 83 个方块的配方——手写 31 个矿物系/平滑石头/竖直红石系配方（含矿物切石机 14 条），另从 26.4 jar 抽取 128 个羊毛/混凝土系配方。
 # 参考 jar：$RefJar 默认 26.4-snapshot-6-Fabric（26.4 快照）；矿物系/平滑石楼梯该版本不存在，天然不撞。
 # 格式：抽取文件沿用原版 2 空格缩进，手写部分为 TAB 缩进，两者混合属预期。
 # 矿物切石机比例（2026-11-16 验收反馈拍板，推翻计划原「矿物不加切石机」）：半砖 1→2、楼梯 1:1。
@@ -11,9 +11,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $ns = 'more-things-vanilla'
 $root = Join-Path $ProjectRoot 'src\main\resources'
 
-# id 表与前两个脚本共享：枚举已生成的 blockstate 文件名（82 条，含计划 4 竖直红石三件套）
+# id 表与前两个脚本共享：枚举已生成的 blockstate 文件名（83 条，含计划 4 竖直红石三件套 + 计划 5 单向传递器）
 $ids = @(Get-ChildItem (Join-Path $root "assets\$ns\blockstates") -Filter *.json | ForEach-Object BaseName)
-if ($ids.Count -ne 82) { throw "blockstate ids $($ids.Count) != 82" }
+if ($ids.Count -ne 83) { throw "blockstate ids $($ids.Count) != 83" }
 $idSet = @{}
 foreach ($i in $ids) { $idSet[$i] = $true }
 

@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:block/cube_all",
+	"textures": {
+		"all": "more-things-vanilla:block/one_way_transmitter_11_side"
+	}
+}

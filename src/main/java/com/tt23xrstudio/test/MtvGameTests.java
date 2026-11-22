@@ -2,6 +2,7 @@ package com.tt23xrstudio.test;
 
 import com.tt23xrstudio.MoreThingsVanilla;
 import com.tt23xrstudio.block.MtvBlocks;
+import com.tt23xrstudio.redstone.OneWayTransmitterBlock;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
@@ -30,6 +31,8 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.FuelValues;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -65,7 +68,9 @@ public final class MtvGameTests {
 			"green_concrete_stairs", "cyan_concrete_stairs", "light_blue_concrete_stairs", "blue_concrete_stairs",
 			"purple_concrete_stairs", "magenta_concrete_stairs", "pink_concrete_stairs", "brown_concrete_stairs",
 			// 计划 4：竖直红石三件套 3
-			"vertical_redstone", "vertical_repeater", "vertical_comparator"
+			"vertical_redstone", "vertical_repeater", "vertical_comparator",
+			// 计划 5：单向传递器 1
+			"one_way_transmitter"
 	};
 
 	@GameTest
@@ -491,10 +496,11 @@ public final class MtvGameTests {
 		});
 	}
 
-	/** 三个新方块均有配方（竖直红石=红石粉合成；中继器/比较器同材料竖排）。 */
+	/** 四个新红石元件均有配方（竖直红石=红石粉合成；中继器/比较器同材料竖排；传递器无序合成）。 */
 	@GameTest
 	public void verticalRecipesLoaded(GameTestHelper helper) {
-		for (String path : new String[] {"vertical_redstone", "vertical_repeater", "vertical_comparator"}) {
+		for (String path : new String[] {"vertical_redstone", "vertical_repeater", "vertical_comparator",
+				"one_way_transmitter"}) {
 			ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, MoreThingsVanilla.id(path));
 			helper.assertTrue(
 					helper.getLevel().getServer().getRecipeManager().byKey(key).isPresent(),
@@ -696,5 +702,249 @@ public final class MtvGameTests {
 			int out = helper.getLevel().getSignal(helper.absolutePos(comp), Direction.DOWN);
 			helper.assertValueEqual(1, out, "comparator detects chest contents change");
 		});
+	}
+
+	// ==================== 计划 5：单向传递器 ====================
+
+	/**
+	 * 单面输入 → 其余 5 面全部同强度输出，输入面本身不输出。
+	 * 输入面 WEST 时，输入面读数方向 = INPUT.getOpposite() = EAST。
+	 */
+	@GameTest
+	public void oneWayTransmitterForwardsSingleFace(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(2, 3, 3), Blocks.REDSTONE_BLOCK);
+		helper.startSequence().thenIdle(3).thenExecute(() -> {
+			BlockState state = helper.getBlockState(transmitter);
+			helper.assertValueEqual(Direction.WEST, state.getValue(OneWayTransmitterBlock.INPUT),
+					"locked input face");
+			helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER), "locked power");
+			for (Direction direction : Direction.values()) {
+				int expected = direction == Direction.EAST ? 0 : 15; // WEST 输入面：EAST 方向读数为输入面
+				helper.assertValueEqual(expected,
+						helper.getLevel().getSignal(helper.absolutePos(transmitter), direction),
+						"signal dir " + direction);
+			}
+		}).thenSucceed();
+	}
+
+	/** 竖直输入（下方）同样成立：DOWN 输入 → UP 不输出、其余 5 面输出。 */
+	@GameTest
+	public void oneWayTransmitterVerticalInput(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(3, 2, 3), Blocks.REDSTONE_BLOCK);
+		helper.startSequence().thenIdle(3).thenExecute(() -> {
+			BlockState state = helper.getBlockState(transmitter);
+			helper.assertValueEqual(Direction.DOWN, state.getValue(OneWayTransmitterBlock.INPUT),
+					"locked input face DOWN");
+			helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER), "locked power");
+			for (Direction direction : Direction.values()) {
+				int expected = direction == Direction.UP ? 0 : 15; // DOWN 输入面：UP 方向读数为输入面
+				helper.assertValueEqual(expected,
+						helper.getLevel().getSignal(helper.absolutePos(transmitter), direction),
+						"signal dir " + direction);
+			}
+		}).thenSucceed();
+	}
+
+	/**
+	 * 同一游戏刻两个面同时输入 → 本次不传递（全 0），等 6 面全灭后重新仲裁，
+	 * 之后单面输入可正常传递。
+	 */
+	@GameTest
+	public void oneWayTransmitterSimultaneousInputsBlock(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		BlockPos west = new BlockPos(2, 3, 3);
+		BlockPos east = new BlockPos(4, 3, 3);
+		BlockPos north = new BlockPos(3, 3, 2);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(west, Blocks.REDSTONE_BLOCK);
+		helper.setBlock(east, Blocks.REDSTONE_BLOCK);
+		helper.startSequence()
+				.thenIdle(3)
+				.thenExecute(() -> {
+					helper.assertValueEqual(0,
+							helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+							"simultaneous inputs must not transmit");
+					for (Direction direction : Direction.values()) {
+						helper.assertValueEqual(0,
+								helper.getLevel().getSignal(helper.absolutePos(transmitter), direction),
+								"no output dir " + direction);
+					}
+				})
+				.thenExecute(() -> {
+					helper.setBlock(west, Blocks.AIR);
+					helper.setBlock(east, Blocks.AIR);
+				})
+				.thenIdle(2)
+				.thenExecute(() -> helper.setBlock(north, Blocks.REDSTONE_BLOCK))
+				.thenIdle(3)
+				.thenExecute(() -> {
+					BlockState state = helper.getBlockState(transmitter);
+					helper.assertValueEqual(Direction.NORTH, state.getValue(OneWayTransmitterBlock.INPUT),
+							"re-arbitrated input NORTH");
+					helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER),
+							"power after re-arbitration");
+					for (Direction direction : Direction.values()) {
+						int expected = direction == Direction.SOUTH ? 0 : 15; // NORTH 输入面
+						helper.assertValueEqual(expected,
+								helper.getLevel().getSignal(helper.absolutePos(transmitter), direction),
+								"signal after reset dir " + direction);
+					}
+				})
+				.thenSucceed();
+	}
+
+	/** 锁定期间输出面被外部供电应被忽略；失去输入后必须等 6 面全灭才重新仲裁。 */
+	@GameTest
+	public void oneWayTransmitterIgnoresOutputFacesWhileLocked(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		BlockPos west = new BlockPos(2, 3, 3);
+		BlockPos east = new BlockPos(4, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(west, Blocks.REDSTONE_BLOCK);
+		helper.startSequence()
+				.thenIdle(3)
+				.thenExecute(() -> {
+					helper.assertValueEqual(Direction.WEST,
+							helper.getBlockState(transmitter).getValue(OneWayTransmitterBlock.INPUT),
+							"initial input WEST");
+					helper.setBlock(east, Blocks.REDSTONE_BLOCK);
+				})
+				.thenIdle(2)
+				.thenExecute(() -> {
+					BlockState state = helper.getBlockState(transmitter);
+					helper.assertValueEqual(Direction.WEST, state.getValue(OneWayTransmitterBlock.INPUT),
+							"still locked WEST");
+					helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER),
+							"still power 15");
+					helper.assertValueEqual(15,
+							helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.WEST),
+							"east output still 15");
+				})
+				.thenExecute(() -> helper.setBlock(west, Blocks.AIR))
+				.thenIdle(3)
+				.thenExecute(() -> helper.assertValueEqual(0,
+						helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+						"blocked after input lost while east still powered"))
+				.thenExecute(() -> helper.setBlock(east, Blocks.AIR))
+				.thenIdle(3)
+				.thenExecute(() -> helper.setBlock(east, Blocks.REDSTONE_BLOCK))
+				.thenIdle(3)
+				.thenExecute(() -> {
+					BlockState state = helper.getBlockState(transmitter);
+					helper.assertValueEqual(Direction.EAST, state.getValue(OneWayTransmitterBlock.INPUT),
+							"re-arbitrated input EAST");
+					helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER),
+							"power after re-arbitration");
+					helper.assertValueEqual(15,
+							helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.EAST),
+							"west output after re-arbitration");
+				})
+				.thenSucceed();
+	}
+
+	/** 强度透传：竖直红石链 15→14→13 输入 → 输出 13（不衰减）。 */
+	@GameTest
+	public void oneWayTransmitterPassesStrength(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(5, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(4, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(3, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(2, 3, 3), verticalBlock("vertical_redstone"));
+		helper.setBlock(new BlockPos(1, 3, 3), Blocks.REDSTONE_BLOCK);
+		helper.startSequence().thenIdle(6).thenExecute(() -> {
+			BlockState state = helper.getBlockState(transmitter);
+			helper.assertValueEqual(Direction.WEST, state.getValue(OneWayTransmitterBlock.INPUT),
+					"input WEST");
+			helper.assertValueEqual(13, state.getValue(BlockStateProperties.POWER),
+					"passthrough strength 13");
+			helper.assertValueEqual(13,
+					helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.WEST),
+					"east output 13");
+			helper.assertValueEqual(0,
+					helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.EAST),
+					"input face silent");
+		}).thenSucceed();
+	}
+
+	/** 锁定期间输入强度变化（15→14，不经过 0）→ 输出同步变化，不解除锁定。 */
+	@GameTest
+	public void oneWayTransmitterLockedStrengthChanges(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		BlockPos inputWire = new BlockPos(2, 3, 3);
+		BlockPos secondWire = new BlockPos(2, 3, 4);
+		BlockPos sourceA = new BlockPos(1, 3, 3);
+		BlockPos sourceB = new BlockPos(2, 3, 5);
+		helper.setBlock(new BlockPos(2, 2, 3), Blocks.STONE);
+		helper.setBlock(new BlockPos(2, 2, 4), Blocks.STONE);
+		helper.setBlock(inputWire, Blocks.REDSTONE_WIRE);
+		helper.setBlock(secondWire, Blocks.REDSTONE_WIRE);
+		helper.setBlock(sourceA, Blocks.REDSTONE_BLOCK);
+		helper.setBlock(sourceB, Blocks.REDSTONE_BLOCK);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.startSequence()
+				.thenIdle(5)
+				.thenExecute(() -> {
+					helper.assertValueEqual(15,
+							helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+							"initial power 15");
+					helper.setBlock(sourceA, Blocks.AIR);
+				})
+				.thenIdle(5)
+				.thenExecute(() -> {
+					helper.assertValueEqual(Direction.WEST,
+							helper.getBlockState(transmitter).getValue(OneWayTransmitterBlock.INPUT),
+							"still locked WEST after strength change");
+					helper.assertValueEqual(14,
+							helper.getBlockState(transmitter).getValue(BlockStateProperties.POWER),
+							"locked input changed to 14");
+					helper.assertValueEqual(14,
+							helper.getLevel().getSignal(helper.absolutePos(transmitter), Direction.WEST),
+							"output follows to 14");
+				})
+				.thenSucceed();
+	}
+
+	/** 输出面强充能相邻方块（getDirectSignalTo 读到 15）。 */
+	@GameTest
+	public void oneWayTransmitterStrongPowersAdjacent(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		BlockPos stone = new BlockPos(4, 3, 3);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(2, 3, 3), Blocks.REDSTONE_BLOCK);
+		helper.setBlock(stone, Blocks.STONE);
+		helper.startSequence().thenIdle(4).thenExecute(() -> helper.assertValueEqual(15,
+				helper.getLevel().getDirectSignalTo(helper.absolutePos(stone)),
+				"strong power into stone")).thenSucceed();
+	}
+
+	/** 与原版红石粉互通：粉供电输入 → 传递器锁定；输出面点亮的粉 POWER=15。 */
+	@GameTest
+	public void oneWayTransmitterInteropsWithVanillaWire(GameTestHelper helper) {
+		BlockPos transmitter = new BlockPos(3, 3, 3);
+		BlockPos inputWire = new BlockPos(2, 3, 3);
+		BlockPos outputWire = new BlockPos(4, 3, 3);
+		helper.setBlock(new BlockPos(2, 2, 3), Blocks.STONE);
+		helper.setBlock(new BlockPos(4, 2, 3), Blocks.STONE);
+		// 粉先放、传递器后放，粉才会重算连接（与竖直红石互通测试同序）
+		helper.setBlock(inputWire, Blocks.REDSTONE_WIRE);
+		helper.setBlock(outputWire, Blocks.REDSTONE_WIRE);
+		helper.setBlock(transmitter, verticalBlock("one_way_transmitter"));
+		helper.setBlock(new BlockPos(1, 3, 3), Blocks.REDSTONE_BLOCK);
+		helper.startSequence().thenIdle(5).thenExecute(() -> {
+			BlockState state = helper.getBlockState(transmitter);
+			helper.assertValueEqual(Direction.WEST, state.getValue(OneWayTransmitterBlock.INPUT),
+					"input WEST from vanilla wire");
+			helper.assertValueEqual(15, state.getValue(BlockStateProperties.POWER), "power 15");
+			helper.assertValueEqual(15, helper.getBlockState(inputWire).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER),
+					"input wire powered");
+			helper.assertValueEqual(15, helper.getBlockState(outputWire).getValue(
+					net.minecraft.world.level.block.RedStoneWireBlock.POWER),
+					"output wire powered");
+		}).thenSucceed();
 	}
 }
