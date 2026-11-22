@@ -945,6 +945,16 @@ public final class MtvGameTests {
 		helper.getBlockState(pos).useWithoutItem(helper.getLevel(), player, hit);
 	}
 
+	/** 模式切换使用自定义音效（用户提供 block.one_way_transmitter.click），必须成功注册。 */
+	@GameTest
+	public void oneWayTransmitterClickSoundRegistered(GameTestHelper helper) {
+		Identifier id = MoreThingsVanilla.id("block.one_way_transmitter.click");
+		helper.assertTrue(BuiltInRegistries.SOUND_EVENT.containsKey(id),
+				"transmitter click sound not registered: " + id);
+		helper.assertValueEqual(id, OneWayTransmitterBlock.CLICK.location(), "wrong click sound id");
+		helper.succeed();
+	}
+
 	/** 锁定期间输入强度变化（15→14，不经过 0）→ 输出同步变化，不解除锁定。 */
 	@GameTest
 	public void oneWayTransmitterLockedStrengthChanges(GameTestHelper helper) {

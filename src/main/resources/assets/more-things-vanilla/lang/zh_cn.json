@@ -103,5 +103,6 @@
 	"subtitles.entity.cushion.break": "坐垫：损坏",
 	"subtitles.entity.cushion.get_up": "离开坐垫",
 	"subtitles.entity.cushion.place": "坐垫：被放置",
-	"subtitles.entity.cushion.sit": "坐上坐垫"
+	"subtitles.entity.cushion.sit": "坐上坐垫",
+	"subtitles.block.one_way_transmitter.click": "单向传递器：模式变更"
 }

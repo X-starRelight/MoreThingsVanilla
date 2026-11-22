@@ -1,11 +1,15 @@
 package com.tt23xrstudio.redstone;
 
 import com.mojang.serialization.MapCodec;
+import com.tt23xrstudio.MoreThingsVanilla;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
@@ -55,6 +59,9 @@ public class OneWayTransmitterBlock extends Block implements EntityBlock {
 	public static final BooleanProperty MODE = BooleanProperty.create("mode");
 	/** 当前锁定的输入面；POWER=0 时该值仅表示上一次锁定的面，不参与输出。 */
 	public static final EnumProperty<Direction> INPUT = EnumProperty.create("input", Direction.class);
+
+	/** 模式切换音效（用户提供：sounds.json 的 block.one_way_transmitter.click）。 */
+	public static final SoundEvent CLICK = registerClickSound();
 
 	public OneWayTransmitterBlock(BlockBehaviour.Properties properties) {
 		super(properties);
@@ -116,8 +123,7 @@ public class OneWayTransmitterBlock extends Block implements EntityBlock {
 			return InteractionResult.PASS;
 		}
 		state = state.cycle(MODE);
-		float pitch = state.getValue(MODE) ? 0.55F : 0.5F;
-		level.playSound(player, pos, SoundEvents.COMPARATOR_CLICK, SoundSource.BLOCKS, 0.3F, pitch);
+		level.playSound(player, pos, CLICK, SoundSource.BLOCKS, 0.3F, 1.0F);
 		level.setBlock(pos, state, 2);
 		// 已锁定（通）时立即按新模式刷新输出，不等下一次输入变化
 		if (level.getBlockState(pos).is(this) && state.getValue(POWER) > 0) {
@@ -301,5 +307,10 @@ public class OneWayTransmitterBlock extends Block implements EntityBlock {
 	private OneWayTransmitterBlockEntity blockEntity(BlockGetter level, BlockPos pos) {
 		BlockEntity blockEntity = level.getBlockEntity(pos);
 		return blockEntity instanceof OneWayTransmitterBlockEntity transmitter ? transmitter : null;
+	}
+
+	private static SoundEvent registerClickSound() {
+		Identifier id = MoreThingsVanilla.id("block.one_way_transmitter.click");
+		return Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
 	}
 }

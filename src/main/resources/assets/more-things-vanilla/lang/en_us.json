@@ -103,5 +103,6 @@
 	"subtitles.entity.cushion.break": "Cushion breaks",
 	"subtitles.entity.cushion.get_up": "Gets up from Cushion",
 	"subtitles.entity.cushion.place": "Cushion placed",
-	"subtitles.entity.cushion.sit": "Sits on Cushion"
+	"subtitles.entity.cushion.sit": "Sits on Cushion",
+	"subtitles.block.one_way_transmitter.click": "One Way Transmitter clicks"
 }

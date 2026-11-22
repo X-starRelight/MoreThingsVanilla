@@ -14,6 +14,10 @@
 	"entity.cushion.sit": {
 		"sounds": ["more-things-vanilla:entity/cushion/sit1", "more-things-vanilla:entity/cushion/sit2", "more-things-vanilla:entity/cushion/sit3"],
 		"subtitle": "subtitles.entity.cushion.sit"
+	},
+	"block.one_way_transmitter.click": {
+		"sounds": ["more-things-vanilla:block/one_way_transmitter/mode_0t1", "more-things-vanilla:block/one_way_transmitter/mode_1t0"],
+		"subtitle": "subtitles.block.one_way_transmitter.click"
 	}
 }
 
