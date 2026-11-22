@@ -29,7 +29,10 @@ public abstract class LevelMixin {
 		Level level = (Level) (Object) this;
 		for (Direction direction : Direction.values()) {
 			BlockPos neighborPos = pos.relative(direction);
-			if (!level.hasChunkAt(neighborPos)) {
+			if (!level.hasChunk(
+					neighborPos.getX() >> 4,
+					neighborPos.getZ() >> 4
+			)) {
 				continue;
 			}
 			BlockState neighborState = level.getBlockState(neighborPos);
@@ -38,7 +41,10 @@ public abstract class LevelMixin {
 			} else if (neighborState.isRedstoneConductor(level, neighborPos)) {
 				// 与原版一致：模拟输出可穿过一格导体被比较器读取
 				BlockPos farPos = neighborPos.relative(direction);
-				if (!level.hasChunkAt(farPos)) {
+				if (!level.hasChunk(
+						farPos.getX() >> 4,
+						farPos.getZ() >> 4
+				)) {
 					continue;
 				}
 				BlockState farState = level.getBlockState(farPos);
