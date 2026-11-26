@@ -69,7 +69,7 @@ MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：给原版添加更多有�
 
 ## 推荐搭配 Mod
 
-`vanilla-refit-fabric`（Vanilla Refit Fabric，原版精修）同样扩展建筑形态与细节，适合想增加建筑选材的玩家。它是可选搭配。
+[`vanilla-refit-fabric`（Vanilla Refit Fabric，原版精修）](https://github.com/X-starRelight/vanilla-refit-fabric)同样扩展建筑形态与细节，适合想增加建筑选材的玩家。它是可选搭配。
 
 ## 项目结构
 
