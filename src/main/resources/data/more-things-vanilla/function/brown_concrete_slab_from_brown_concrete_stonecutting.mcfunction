@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:brown_concrete_slab_from_brown_concrete_stonecutting

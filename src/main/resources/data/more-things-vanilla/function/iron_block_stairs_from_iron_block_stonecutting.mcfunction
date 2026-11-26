@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:iron_block_stairs_from_iron_block_stonecutting

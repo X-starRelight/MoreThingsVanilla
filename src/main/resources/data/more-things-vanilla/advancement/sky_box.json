@@ -1,0 +1,40 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:torch"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_002": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:glass"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001",
+      "has_ingredient_002"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:sky_box"
+    ],
+    "function": "more-things-vanilla:sky_box"
+  }
+}

@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:pink_concrete_stairs_from_pink_concrete_stonecutting

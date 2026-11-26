@@ -70,8 +70,25 @@ public final class MtvGameTests {
 			// 计划 4：竖直红石三件套 3
 			"vertical_redstone", "vertical_repeater", "vertical_comparator",
 			// 计划 5：单向传递器 1
-			"one_way_transmitter"
+			"one_way_transmitter", "sky_box", "end_box"
 	};
+
+	@GameTest
+	public void endBoxIsSolidDecoration(GameTestHelper helper) {
+		Block block = BuiltInRegistries.BLOCK.getValue(MoreThingsVanilla.id("end_box"));
+		BlockPos pos = new BlockPos(1, 1, 1);
+		helper.setBlock(pos, block);
+		BlockState state = helper.getBlockState(pos);
+		helper.assertTrue(state.isCollisionShapeFullBlock(helper.getLevel(), helper.absolutePos(pos)), "end_box needs full collision");
+		helper.assertFalse(block instanceof net.minecraft.world.level.block.Portal, "end_box must not teleport entities");
+		helper.assertValueEqual(15, state.getLightEmission(), "end_box light level");
+		helper.assertTrue(helper.getLevel().getBlockEntity(helper.absolutePos(pos)) instanceof net.minecraft.world.level.block.entity.TheEndPortalBlockEntity, "missing portal surface");
+		var surface = (net.minecraft.world.level.block.entity.TheEndPortalBlockEntity) helper.getLevel().getBlockEntity(helper.absolutePos(pos));
+		for (Direction dir : Direction.values()) helper.assertTrue(surface.shouldRenderFace(dir), "missing surface " + dir);
+		helper.setBlock(pos.east(), block);
+		helper.assertFalse(surface.shouldRenderFace(Direction.EAST), "shared end_box face should be hidden");
+		helper.succeed();
+	}
 
 	@GameTest
 	public void creativeTabRegistered(GameTestHelper helper) {
@@ -227,6 +244,7 @@ public final class MtvGameTests {
 	public void recipesLoaded(GameTestHelper helper) {
 		// 每个方块至少一条合成配方（手写或 26.4 抽取，配方 id = 方块 id）
 		List<String> recipeIds = new ArrayList<>(Arrays.asList(ALL_NEW_BLOCK_IDS));
+		recipeIds.remove("end_box"); // 单独制作配方后再纳入检查。
 		// 额外抽取/手写的代表性配方（id = 文件名）
 		recipeIds.add("dye_white_wool_slab");
 		recipeIds.add("white_concrete_slab_from_white_concrete_stonecutting");

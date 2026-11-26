@@ -2,7 +2,7 @@
 
 ![MoreThingsVanilla 图标](./icon.png)
 
-MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：用彩色台阶和楼梯搭建筑，用坐垫做能坐的座位，也可以让红石信号沿墙面或地板向上、向下传递。
+MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：给原版添加更多有用的东西。
 
 ## 基本信息
 
@@ -19,7 +19,9 @@ MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：用彩色台阶和楼梯�
 
 - **建筑材质扩展**：给七种矿物块、十六色羊毛和十六色混凝土补齐台阶（游戏内称「半砖」）和楼梯，另加平滑石头楼梯。
 - **原创红石组件**：竖直红石能从六面收发信号；竖直红石中继器和比较器可以把输出端朝上或朝下。红石单向传递器则从最先通电的一面取信号，送往其余五面。
-- **十六色坐垫**：完整复刻原版坐垫。放到建筑表面后可以入座；坐垫是实体，因此也能放在半砖上，不必占据一整格方块。
+- **天空盒方块**：把真实天空嵌进建筑，六个面实时显示日、月、星、云，拼在一起能连成一片。
+- **末地盒方块**：把原版末地传送门的动态星空做成整格方块，六面发光，接触不会传送。
+- **十六色坐垫**：完整复刻原版坐垫到以前没有坐垫的版本。甚至 Bug 也继承了原版！
 
 ## 新增内容一览
 
@@ -29,9 +31,11 @@ MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：用彩色台阶和楼梯�
 | 楼梯           |   40 | 同一套材质可做阶梯和转角；比台阶多一种平滑石头     |
 | 竖直红石组件   |    3 | 跨楼层布线、延时、比较或作差                       |
 | 红石单向传递器 |    1 | 从一个输入面向多个方向分发信号                     |
+| 天空盒方块     |    1 | 在建筑里镶出连续天空，并提供 15 级光照             |
+| 末地盒方块     |    1 | `end_box` 的六面显示原版末地传送门星空，发出 15 级光，接触不会传送 |
 | 坐垫物品       |   16 | 制作、改色并摆放可骑乘的座位                       |
 
-共 **83 种方块、99 种物品**（83 种方块物品 + 16 种坐垫）。[建筑方块全表](docs_mt_v/blocks.md)逐项列出了所有材质和 ID。
+共 **85 种方块、101 种物品**（85 种方块物品 + 16 种坐垫）。[建筑方块全表](docs_mt_v/blocks.md)逐项列出了所有材质和 ID。
 
 ### 配方与用法
 
@@ -43,6 +47,7 @@ MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：用彩色台阶和楼梯�
 | 1 个竖直红石中继器  | 左列放 3 块石头；中列从上到下放红石火把、红石粉、红石火把                              |
 | 1 个竖直红石比较器  | 左列放 3 块石头；中列从上到下放红石火把、下界石英、红石火把；右列中格再放 1 个红石火把 |
 | 1 个红石单向传递器  | 原版红石中继器 ×1、红石火把 ×1、红石粉 ×2，无序合成                                 |
+| 8 个天空盒方块      | 正中放 1 支火把，周围八格各放 1 块玻璃                                                 |
 
 ### 红石行为示例
 
@@ -60,7 +65,7 @@ MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：用彩色台阶和楼梯�
 
 当前 `0.1.0` 的目标是 **26.2**。在未来的 26.4 构建中，计划将 64 个十六色羊毛、混凝土台阶与楼梯交给原版注册，并用 DataFixer 将存档里的对应 ID 从 `more-things-vanilla:` 迁移到 `minecraft:`。例如，`more-things-vanilla:red_wool_slab` 将对应 `minecraft:red_wool_slab`。**26.2 版不执行这项转换。**
 
-七种矿物的 14 个建筑方块、平滑石头楼梯和四个红石方块计划继续保留在本 Mod 的命名空间内。
+七种矿物的 14 个建筑方块、平滑石头楼梯、四个红石方块、天空盒方块和末地盒方块计划继续保留在本 Mod 的命名空间内。
 
 ## 推荐搭配 Mod
 
@@ -71,7 +76,7 @@ MoreThingsVanilla 是面向 Minecraft 的 Fabric Mod：用彩色台阶和楼梯�
 ```text
 docs_mt_v/                          玩家文档与方块清单
 src/main/java/com/tt23xrstudio/     公共入口、方块、红石、坐垫和 GameTest
-src/client/                         客户端入口、坐垫渲染等
+src/client/                         客户端入口、坐垫、天空盒与末地盒渲染
 src/main/resources/assets/          名称、模型、纹理与音效定义
 src/main/resources/data/            合成与切石配方、掉落表、标签
 gradle.properties                   游戏、加载器与依赖版本
@@ -81,7 +86,7 @@ gradle.properties                   游戏、加载器与依赖版本
 
 ## 文档导航
 
-[文档首页与阅读路径](docs_mt_v/README.md) · [快速上手](docs_mt_v/getting-started.md) · [台阶与楼梯全表](docs_mt_v/blocks.md) · [竖直红石](docs_mt_v/redstone.md) · [红石单向传递器](docs_mt_v/one-way-transmitter.md) · [坐垫](docs_mt_v/cushion.md) · [常见问题](docs_mt_v/faq.md)
+[文档首页与阅读路径](docs_mt_v/README.md) · [快速上手](docs_mt_v/getting-started.md) · [台阶与楼梯全表](docs_mt_v/blocks.md) · [竖直红石](docs_mt_v/redstone.md) · [红石单向传递器](docs_mt_v/one-way-transmitter.md) · [坐垫](docs_mt_v/cushion.md) · [天空盒方块](docs_mt_v/sky-box.md) · [末地盒方块](docs_mt_v/end-box.md) · [常见问题](docs_mt_v/faq.md)
 
 ## 许可证
 

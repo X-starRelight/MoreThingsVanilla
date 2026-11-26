@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:redstone_block_slab_from_redstone_block_stonecutting

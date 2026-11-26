@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "conditions": [{ "condition": "minecraft:survives_explosion" }],
+      "entries": [{ "type": "minecraft:item", "name": "more-things-vanilla:end_box" }],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "more-things-vanilla:blocks/end_box"
+}

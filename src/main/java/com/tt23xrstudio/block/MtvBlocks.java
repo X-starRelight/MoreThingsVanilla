@@ -7,12 +7,16 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.tt23xrstudio.MoreThingsVanilla;
+import com.tt23xrstudio.endbox.EndBoxBlock;
+import com.tt23xrstudio.endbox.EndBoxBlockEntity;
 import com.tt23xrstudio.redstone.OneWayTransmitterBlock;
 import com.tt23xrstudio.redstone.OneWayTransmitterBlockEntity;
 import com.tt23xrstudio.redstone.VerticalComparatorBlock;
 import com.tt23xrstudio.redstone.VerticalComparatorBlockEntity;
 import com.tt23xrstudio.redstone.VerticalRedstoneBlock;
 import com.tt23xrstudio.redstone.VerticalRepeaterBlock;
+import com.tt23xrstudio.skybox.SkyBoxBlock;
+import com.tt23xrstudio.skybox.SkyBoxBlockEntity;
 
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.FuelValueEvents;
@@ -28,6 +32,7 @@ import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.PushReaction;
 
 /**
  * 方块注册框架（计划 2 起使用）：按基块批量注册半砖/楼梯。
@@ -78,6 +83,8 @@ public final class MtvBlocks {
 				builder.add(item, WOOL_FUEL_BURN_TIME);
 			}
 		});
+		// 天空盒 / 末地盒方块
+		registerProjectedBoxes();
 	}
 
 	private static void registerSlab(Block base, boolean flammable) {
@@ -108,6 +115,21 @@ public final class MtvBlocks {
 		// BlockEntity 类型依赖方块实例，须在方块注册之后
 		VerticalComparatorBlockEntity.registerType(ALL.get("vertical_comparator"));
 		OneWayTransmitterBlockEntity.registerType(ALL.get("one_way_transmitter"));
+	}
+
+	private static void registerProjectedBoxes() {
+		finish("sky_box", boxProperties("sky_box"), SkyBoxBlock::new, false);
+		SkyBoxBlockEntity.registerType(ALL.get("sky_box"));
+		finish("end_box", boxProperties("end_box"), EndBoxBlock::new, false);
+		EndBoxBlockEntity.registerType(ALL.get("end_box"));
+	}
+
+	private static BlockBehaviour.Properties boxProperties(String path) {
+		return BlockBehaviour.Properties.of()
+				.strength(1.5F, 6.0F)
+				.lightLevel(state -> 15)
+				.pushReaction(PushReaction.BLOCK)
+				.setId(ResourceKey.create(Registries.BLOCK, MoreThingsVanilla.id(path)));
 	}
 
 	/** 竖直红石系属性：复制对应原版方块（音效/硬度/工具需求），关掉导体谓词。 */

@@ -1,0 +1,27 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:magenta_wool"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:magenta_wool_stairs"
+    ],
+    "function": "more-things-vanilla:magenta_wool_stairs"
+  }
+}

@@ -3,7 +3,9 @@
 	"package": "com.tt23xrstudio.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"MtvClientMixin"
+		"CloudRendererTargetMixin",
+		"MtvClientMixin",
+		"SkyRendererAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

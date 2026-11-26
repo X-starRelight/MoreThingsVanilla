@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:lime_concrete_slab_from_lime_concrete_stonecutting

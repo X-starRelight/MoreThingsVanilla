@@ -1,0 +1,27 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:orange_concrete"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:orange_concrete_slab_from_orange_concrete_stonecutting"
+    ],
+    "function": "more-things-vanilla:orange_concrete_slab_from_orange_concrete_stonecutting"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:cyan_concrete"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:cyan_concrete_stairs_from_cyan_concrete_stonecutting"
+    ],
+    "function": "more-things-vanilla:cyan_concrete_stairs_from_cyan_concrete_stonecutting"
+  }
+}

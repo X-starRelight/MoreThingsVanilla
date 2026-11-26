@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:smooth_stone_stairs_from_smooth_stone_stonecutting

@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:cyan_concrete_slab_from_cyan_concrete_stonecutting

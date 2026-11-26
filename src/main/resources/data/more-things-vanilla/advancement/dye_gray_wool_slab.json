@@ -1,0 +1,222 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:gray_dye"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_002": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:white_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_003": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:orange_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_004": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:magenta_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_005": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:light_blue_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_006": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:yellow_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_007": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:lime_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_008": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:pink_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_009": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:light_gray_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_010": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:cyan_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_011": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:purple_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_012": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:blue_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_013": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:brown_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_014": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:green_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_015": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:red_wool_slab"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_016": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:black_wool_slab"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001",
+      "has_ingredient_002",
+      "has_ingredient_003",
+      "has_ingredient_004",
+      "has_ingredient_005",
+      "has_ingredient_006",
+      "has_ingredient_007",
+      "has_ingredient_008",
+      "has_ingredient_009",
+      "has_ingredient_010",
+      "has_ingredient_011",
+      "has_ingredient_012",
+      "has_ingredient_013",
+      "has_ingredient_014",
+      "has_ingredient_015",
+      "has_ingredient_016"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:dye_gray_wool_slab"
+    ],
+    "function": "more-things-vanilla:dye_gray_wool_slab"
+  }
+}

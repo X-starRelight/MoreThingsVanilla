@@ -1,0 +1,53 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:repeater"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_002": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:redstone_torch"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_003": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:redstone"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001",
+      "has_ingredient_002",
+      "has_ingredient_003"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:one_way_transmitter"
+    ],
+    "function": "more-things-vanilla:one_way_transmitter"
+  }
+}

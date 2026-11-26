@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:magenta_concrete_slab_from_magenta_concrete_stonecutting

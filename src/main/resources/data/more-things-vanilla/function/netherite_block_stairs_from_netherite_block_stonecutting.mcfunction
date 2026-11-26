@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:netherite_block_stairs_from_netherite_block_stonecutting

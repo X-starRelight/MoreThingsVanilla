@@ -1,0 +1,40 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "more-things-vanilla:sky_box"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_002": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:end_stone"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001",
+      "has_ingredient_002"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:end_box"
+    ],
+    "function": "more-things-vanilla:end_box"
+  }
+}

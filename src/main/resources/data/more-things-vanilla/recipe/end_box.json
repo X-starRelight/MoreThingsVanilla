@@ -1,0 +1,11 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"ingredients": [
+		"more-things-vanilla:sky_box",
+		"minecraft:end_stone"
+	],
+	"result": {
+		"id": "more-things-vanilla:end_box"
+	}
+}

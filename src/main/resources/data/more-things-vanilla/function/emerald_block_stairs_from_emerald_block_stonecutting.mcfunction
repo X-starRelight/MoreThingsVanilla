@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:emerald_block_stairs_from_emerald_block_stonecutting

@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:cyan_concrete_stairs_from_cyan_concrete_stonecutting

@@ -1,0 +1,27 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:smooth_stone"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:smooth_stone_stairs"
+    ],
+    "function": "more-things-vanilla:smooth_stone_stairs"
+  }
+}

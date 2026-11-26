@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:black_concrete_stairs_from_black_concrete_stonecutting

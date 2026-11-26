@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:white_concrete_stairs

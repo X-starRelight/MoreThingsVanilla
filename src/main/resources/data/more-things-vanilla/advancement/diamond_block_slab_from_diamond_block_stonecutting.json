@@ -1,0 +1,27 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:diamond_block"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:diamond_block_slab_from_diamond_block_stonecutting"
+    ],
+    "function": "more-things-vanilla:diamond_block_slab_from_diamond_block_stonecutting"
+  }
+}

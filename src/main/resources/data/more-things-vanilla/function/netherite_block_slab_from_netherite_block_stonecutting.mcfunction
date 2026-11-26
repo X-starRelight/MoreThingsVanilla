@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:netherite_block_slab_from_netherite_block_stonecutting

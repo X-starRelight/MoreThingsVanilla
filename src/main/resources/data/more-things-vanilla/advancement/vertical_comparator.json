@@ -1,0 +1,53 @@
+{
+  "criteria": {
+    "has_ingredient_001": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:redstone_torch"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_002": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:stone"
+            ]
+          }
+        ]
+      }
+    },
+    "has_ingredient_003": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:quartz"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredient_001",
+      "has_ingredient_002",
+      "has_ingredient_003"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "more-things-vanilla:vertical_comparator"
+    ],
+    "function": "more-things-vanilla:vertical_comparator"
+  }
+}

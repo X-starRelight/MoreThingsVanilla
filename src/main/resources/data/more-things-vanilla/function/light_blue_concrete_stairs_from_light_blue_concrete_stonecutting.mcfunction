@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:light_blue_concrete_stairs_from_light_blue_concrete_stonecutting

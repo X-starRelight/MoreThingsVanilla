@@ -1,0 +1,1 @@
+advancement revoke @s only more-things-vanilla:red_concrete_stairs_from_red_concrete_stonecutting
