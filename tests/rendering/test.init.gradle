@@ -1,0 +1,24 @@
+// Opt-in: gradlew -I tests/rendering/test.init.gradle runClient
+gradle.projectsEvaluated {
+    def project = gradle.rootProject
+    def testDir = project.file('tests/rendering')
+    def compile = project.tasks.register('compileBoxVisualTest', JavaCompile) {
+        source new File(testDir, 'BoxVisualTest.java')
+        classpath = project.sourceSets.client.compileClasspath
+        destinationDirectory.set(project.layout.buildDirectory.dir('box-visual-test/classes'))
+        options.release.set(25)
+    }
+    def testMod = project.tasks.register('boxVisualTestJar', Jar) {
+        from compile.flatMap { it.destinationDirectory }
+        from new File(testDir, 'fabric.mod.json')
+        archiveFileName.set('box-visual-test.jar')
+        destinationDirectory.set(project.layout.buildDirectory.dir('box-visual-test'))
+    }
+    project.tasks.named('runClient') {
+        dependsOn testMod
+        internalRunDir.set(project.layout.projectDirectory.dir(project.findProperty('boxTestInstance') ?: 'build/box-visual-test/instance'))
+        systemProperty 'fabric.addMods', testMod.get().archiveFile.get().asFile.absolutePath
+        systemProperty 'fabric.client.gametest', 'true'
+        systemProperty 'fabric.client.gametest.modid', 'mtv_box_visual_test'
+    }
+}

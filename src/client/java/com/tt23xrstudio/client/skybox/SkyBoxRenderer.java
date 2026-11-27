@@ -1,539 +1,179 @@
 package com.tt23xrstudio.client.skybox;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BindGroupLayout;
+import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.CompareOp;
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.tt23xrstudio.MoreThingsVanilla;
+import com.tt23xrstudio.skybox.SkyBoxBlockEntity;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelTerrainRenderContext;
-
-import net.minecraft.client.CloudStatus;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.BindGroupLayouts;
-import net.minecraft.client.renderer.CloudRenderer;
-import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.SkyRenderer;
 import net.minecraft.client.renderer.StagedVertexBuffer;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.level.SkyRenderState;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 
-import com.tt23xrstudio.client.mixin.SkyRendererAccessor;
-import com.tt23xrstudio.skybox.SkyBoxBlockEntity;
-
-/**
- * 基础款 Block of Sky 渲染器。
- *
- * <p>每帧在 {@code START_MAIN}（原版天空已经画完、不透明地形尚未画）时，用原版
- * {@link SkyRenderer} 把当前天空分别以 90° FOV 渲染到六张 512×512 纹理。六个
- * 方向依次是 +X、-X、+Y、-Y、+Z、-Z；云层通过 {@link CloudRenderer} 复用原版
- * 网格，并由客户端 Mixin 临时重定向到当前面。下界等无天空维度改用当前雾色填充。
- *
- * <p>随后在 {@code AFTER_OPAQUE_TERRAIN} 用 sky_box 管线把每个天空盒的外露面
- * 画到主目标。所有方块沿相机到片元的视线采样同一片天空。
- */
+/** 保留天空 pass 已经绘制的颜色，只在方块覆盖的像素上暂时阻挡后方地形。 */
 public final class SkyBoxRenderer {
-	private static final String MOD_ID = "more-things-vanilla";
-
-	private static final int FACE_SIZE = 512;
-	private static final float FACE_FOV_DEGREES = 90.0F;
-
-	private static final int FACE_POS_X = 0;
-	private static final int FACE_NEG_X = 1;
-	private static final int FACE_POS_Y = 2;
-	private static final int FACE_NEG_Y = 3;
-	private static final int FACE_POS_Z = 4;
-	private static final int FACE_NEG_Z = 5;
-
-	/** 六个采样器对应六张面纹理，顺序与捕获顺序、着色器分支一致。 */
-	private static final BindGroupLayout FACE_SAMPLERS = BindGroupLayout.builder()
-			.withSampler("Sampler0")
-			.withSampler("Sampler1")
-			.withSampler("Sampler2")
-			.withSampler("Sampler3")
-			.withSampler("Sampler4")
-			.withSampler("Sampler5")
-			.build();
-
-	private static final RenderPipeline PIPELINE = RenderPipelines.register(
-			RenderPipeline.builder()
-					.withLocation(Identifier.fromNamespaceAndPath(MOD_ID, "pipeline/sky_box"))
-					.withVertexShader(Identifier.fromNamespaceAndPath(MOD_ID, "core/sky_box"))
-					.withFragmentShader(Identifier.fromNamespaceAndPath(MOD_ID, "core/sky_box"))
-					.withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
-					.withBindGroupLayout(FACE_SAMPLERS)
-					.withVertexBinding(0, DefaultVertexFormat.POSITION)
-					.withPrimitiveTopology(PrimitiveTopology.QUADS)
-					.withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, true))
-					.withCull(false)
-					.build()
-	);
-
-	private static final Vector4f WHITE = new Vector4f(1.0F, 1.0F, 1.0F, 1.0F);
+	private static final RenderPipeline MASK = pipeline(false);
+	private static final RenderPipeline RESTORE = pipeline(true);
+	private static final StagedVertexBuffer BUFFER = new StagedVertexBuffer(() -> "Sky box depth mask", RenderType.SMALL_BUFFER_SIZE);
+	private static final Vector4f WHITE = new Vector4f(1.0f);
 	private static final Vector3f ZERO = new Vector3f();
-	private static final Matrix4f IDENTITY_TEXTURE_MATRIX = new Matrix4f();
+	private static final Matrix4f IDENTITY = new Matrix4f();
+	private static StagedVertexBuffer.ExecuteInfo geometry;
+	private static GpuBufferSlice transform;
+	private static GpuTextureView maskedDepth;
+	private static GpuTexture snapshot;
+	private static GpuTextureView snapshotView;
 
-	private static final StagedVertexBuffer VERTEX_BUFFER =
-			new StagedVertexBuffer(() -> "MoreThingsVanilla SkyBox", RenderType.SMALL_BUFFER_SIZE);
+	private SkyBoxRenderer() {}
 
-	private static final Quaternionf[] FACE_ROTATIONS = new Quaternionf[6];
-	private static final Vector3f[] FACE_NORMALS = new Vector3f[6];
-	private static final Vector3f[] FACE_TANGENTS = new Vector3f[6];
-	private static final Vector3f[] FACE_BITANGENTS = new Vector3f[6];
-
-	static {
-		// 捕获方向：相机默认朝 -Z，把对应世界轴旋转到 -Z 即可。
-		FACE_ROTATIONS[FACE_POS_X] = new Quaternionf().rotationY((float) (Math.PI / 2.0));
-		FACE_ROTATIONS[FACE_NEG_X] = new Quaternionf().rotationY((float) (-Math.PI / 2.0));
-		FACE_ROTATIONS[FACE_POS_Y] = new Quaternionf().rotationX((float) (-Math.PI / 2.0));
-		FACE_ROTATIONS[FACE_NEG_Y] = new Quaternionf().rotationX((float) (Math.PI / 2.0));
-		FACE_ROTATIONS[FACE_POS_Z] = new Quaternionf().rotationY((float) Math.PI);
-		FACE_ROTATIONS[FACE_NEG_Z] = new Quaternionf();
-
-		// 每面的法线 / 切线 / 副切线，与 sky_box.fsh 的投影公式一一对应。
-		setFaceAxes(Direction.EAST, new Vector3f(1, 0, 0), new Vector3f(0, 0, 1), new Vector3f(0, 1, 0));
-		setFaceAxes(Direction.WEST, new Vector3f(-1, 0, 0), new Vector3f(0, 0, -1), new Vector3f(0, 1, 0));
-		setFaceAxes(Direction.UP, new Vector3f(0, 1, 0), new Vector3f(1, 0, 0), new Vector3f(0, 0, 1));
-		setFaceAxes(Direction.DOWN, new Vector3f(0, -1, 0), new Vector3f(1, 0, 0), new Vector3f(0, 0, -1));
-		setFaceAxes(Direction.SOUTH, new Vector3f(0, 0, 1), new Vector3f(-1, 0, 0), new Vector3f(0, 1, 0));
-		setFaceAxes(Direction.NORTH, new Vector3f(0, 0, -1), new Vector3f(1, 0, 0), new Vector3f(0, 1, 0));
-	}
-
-	private static TextureTarget[] faces;
-	private static ProjectionMatrixBuffer projectionBuffer;
-	private static GpuSampler faceSampler;
-	private static final Matrix4f FACE_PROJECTION = new Matrix4f();
-
-	/** 云层捕获期间由 Mixin 读取；非捕获期间必须为 null。 */
-	private static RenderTarget cloudCaptureTarget;
-
-	/** 本帧是否已准备好天空纹理；没有天空盒或捕获未完成时为 false，此时不绘制。 */
-	private static boolean skyCapturedThisFrame;
-
-	private static StagedVertexBuffer.Draw currentDraw;
-
-	private SkyBoxRenderer() {
+	private static RenderPipeline pipeline(boolean restore) {
+		var shader = MoreThingsVanilla.id("core/sky_box");
+		var builder = RenderPipeline.builder()
+				.withLocation(MoreThingsVanilla.id(restore ? "pipeline/sky_box_restore" : "pipeline/sky_box_mask"))
+				.withVertexShader(shader).withFragmentShader(shader)
+				.withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+				.withVertexBinding(0, DefaultVertexFormat.POSITION).withPrimitiveTopology(PrimitiveTopology.QUADS)
+				.withColorTargetState(new ColorTargetState(Optional.empty(), GpuFormat.RGBA8_UNORM, ColorTargetState.WRITE_NONE))
+				.withDepthStencilState(new DepthStencilState(restore ? CompareOp.ALWAYS_PASS : CompareOp.GREATER_THAN_OR_EQUAL, true))
+				.withCull(false);
+		if (restore) builder.withShaderDefine("RESTORE_SKY_DEPTH")
+				.withBindGroupLayout(BindGroupLayout.builder().withSampler("SceneDepth").build());
+		return RenderPipelines.register(builder.build());
 	}
 
 	public static void register() {
-		LevelRenderEvents.START_MAIN.register(SkyBoxRenderer::captureSkyCube);
-		LevelRenderEvents.AFTER_OPAQUE_TERRAIN.register(SkyBoxRenderer::renderSkyBoxes);
-		LevelRenderEvents.END_MAIN.register(context -> VERTEX_BUFFER.endFrame());
-		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> close());
+		LevelRenderEvents.START_MAIN.register(SkyBoxRenderer::mask);
+		// Before fabulous copies depth and Iris starts its deferred sky pass.
+		LevelRenderEvents.AFTER_SOLID_FEATURES.register(ctx -> restore(ctx.gameRenderer().mainRenderTarget()));
+		// Iris has finished deferred lighting at this point. Hide rear water and glass
+		// during terrain rendering, without leaving surface depth for the clouds pass.
+		LevelRenderEvents.BEFORE_TRANSLUCENT_TERRAIN.register(ctx -> {
+			RenderTarget target = ctx.levelRenderer().translucentTarget();
+			if (target == null) target = ctx.gameRenderer().mainRenderTarget();
+			if (geometry != null && usable(target)) {
+				maskedDepth = target.getDepthTextureView();
+				draw(target, MASK);
+			} else maskedDepth = null;
+		});
+		LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(ctx -> {
+			RenderTarget target = ctx.levelRenderer().translucentTarget();
+			restore(target != null ? target : ctx.gameRenderer().mainRenderTarget());
+		});
+		LevelRenderEvents.END_MAIN.register(ctx -> {
+			geometry = null;
+			maskedDepth = null;
+			transform = null;
+			BUFFER.endFrame();
+		});
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { closeSnapshot(); BUFFER.close(); });
 	}
 
-	public static RenderTarget getCloudCaptureTarget() {
-		return cloudCaptureTarget;
+	private static boolean usable(RenderTarget target) {
+		var depth = target.getDepthTextureView();
+		var color = target.getColorTextureView();
+		return depth != null && color != null && color.texture().getFormat() == GpuFormat.RGBA8_UNORM
+				&& (depth.texture().usage() & GpuTexture.USAGE_COPY_SRC) != 0;
 	}
 
-	private static void ensureInitialized() {
-		if (faces != null) {
-			return;
-		}
-
-		TextureTarget[] created = new TextureTarget[6];
-		for (int face = 0; face < created.length; face++) {
-			created[face] = new TextureTarget(
-					"MoreThingsVanilla sky box face " + face,
-					FACE_SIZE,
-					FACE_SIZE,
-					true,
-					GpuFormat.RGBA8_UNORM
-			);
-		}
-		faces = created;
-		projectionBuffer = new ProjectionMatrixBuffer("more_things_vanilla_sky_box");
-		faceSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
-	}
-
-	private static boolean hasClientSkyBoxes(ClientLevel level) {
-		for (SkyBoxBlockEntity skyBox : SkyBoxBlockEntity.getClientActive()) {
-			if (skyBox.getLevel() == level && !skyBox.isRemoved()) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * 用原版天空渲染器捕获六面天空（含云）。
-	 *
-	 * <p>START_MAIN 位于主 pass 内、原版天空 pass 之后，此时原版天空刚写完主目标，
-	 * 但主目标颜色仍可被后续地形覆盖。捕获写入独立纹理，不会干扰主目标。
-	 */
-	private static void captureSkyCube(LevelTerrainRenderContext context) {
-		skyCapturedThisFrame = false;
-
-		Minecraft client = Minecraft.getInstance();
-		ClientLevel level = client.level;
-		if (level == null || !hasClientSkyBoxes(level)) {
-			return;
-		}
-
-		SkyRenderer skyRenderer = context.levelRenderer().skyRenderer();
-		if (skyRenderer == null) {
-			return;
-		}
-
-		SkyRenderState skyState = context.levelState().skyRenderState;
-		// 下界等无天空维度没有日月星辰，但原版背景仍是雾色；方块显示这层雾色天空。
-		boolean hasSky = skyState.skybox != DimensionType.Skybox.NONE;
-
-		ensureInitialized();
-
-		var cameraState = context.levelState().cameraRenderState;
-		FACE_PROJECTION.setPerspective(
-				(float) Math.toRadians(FACE_FOV_DEGREES),
-				1.0F,
-				cameraState.depthFar,
-				0.05F,
-				RenderSystem.getDevice().getDeviceInfo().isZZeroToOne()
-		);
-
-		SkyRendererAccessor skyRendererAccessor = (SkyRendererAccessor) skyRenderer;
-		RenderTarget originalTarget = skyRendererAccessor.moreThingsVanilla$getRenderTarget();
-
-		CloudStatus cloudStatus = client.options.getCloudStatus();
-		int cloudColor = context.levelState().cloudColor;
-		float cloudHeight = context.levelState().cloudHeight;
-		long gameTime = context.levelState().gameTime;
-		float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(true);
-		Vec3 cameraPos = cameraState.pos;
-		CloudRenderer cloudRenderer = context.levelRenderer().cloudRenderer();
-		boolean renderClouds = hasSky && cloudStatus != CloudStatus.OFF && ARGB.alpha(cloudColor) > 0;
-
-		Vector4f clearColor;
-		if (!hasSky) {
-			// 无天空维度的背景色就是当前雾色（下界会随生物群系变化）。
-			clearColor = new Vector4f(cameraState.fogData.color);
-		} else if (skyState.skybox == DimensionType.Skybox.END) {
-			clearColor = new Vector4f(0.0F, 0.0F, 0.0F, 1.0F);
-		} else {
-			clearColor = ARGB.vector4fFromARGB32(skyState.skyColor);
-		}
-
-		RenderSystem.backupProjectionMatrix();
-		try {
-			RenderSystem.setProjectionMatrix(
-					projectionBuffer.getBuffer(FACE_PROJECTION),
-					ProjectionType.PERSPECTIVE
-			);
-
-			Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
-
-			for (int face = 0; face < faces.length; face++) {
-				TextureTarget target = faces[face];
-
-				// 26.2 使用反向深度：远处 = 0.0。
-				RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-						target.getColorTexture(),
-						clearColor,
-						target.getDepthTexture(),
-						0.0
-				);
-
-				modelViewStack.pushMatrix();
-				modelViewStack.identity();
-				modelViewStack.rotate(FACE_ROTATIONS[face]);
-
-				if (hasSky) {
-					// 原版 SkyRenderer 的所有方法都写自身的 renderTarget，临时切面。
-					skyRendererAccessor.moreThingsVanilla$setRenderTarget(target);
-					try {
-						captureFace(skyRenderer, skyState);
-					} finally {
-						skyRendererAccessor.moreThingsVanilla$setRenderTarget(originalTarget);
-					}
-
-					if (renderClouds) {
-						captureClouds(
-								cloudRenderer,
-								target,
-								cloudColor,
-								cloudStatus,
-								cloudHeight,
-								cameraPos,
-								gameTime,
-								partialTick
-						);
-					}
+	private static void mask(LevelTerrainRenderContext ctx) {
+		geometry = null;
+		RenderTarget target = ctx.gameRenderer().mainRenderTarget();
+		if (!usable(target)) return;
+		var camera = ctx.levelState().cameraRenderState;
+		var level = Minecraft.getInstance().level;
+		StagedVertexBuffer.Draw batch = null;
+		VertexConsumer out = null;
+		for (var box : SkyBoxBlockEntity.getClientActive()) {
+			if (box.isRemoved() || box.getLevel() != level) continue;
+			var pos = box.getBlockPos();
+			if (camera.cullFrustum != null && !camera.cullFrustum.isVisible(new AABB(pos))) continue;
+			float x = (float)(pos.getX() - camera.pos.x), y = (float)(pos.getY() - camera.pos.y), z = (float)(pos.getZ() - camera.pos.z);
+			for (Direction face : Direction.values()) {
+				if (!box.shouldRenderFace(face)) continue;
+				if (batch == null) {
+					batch = BUFFER.appendDraw(DefaultVertexFormat.POSITION, PrimitiveTopology.QUADS);
+					out = BUFFER.getVertexBuilder(batch);
 				}
-
-				modelViewStack.popMatrix();
-			}
-		} finally {
-			cloudCaptureTarget = null;
-			RenderSystem.restoreProjectionMatrix();
-		}
-
-		skyCapturedThisFrame = true;
-	}
-
-	private static void captureFace(SkyRenderer skyRenderer, SkyRenderState skyState) {
-		PoseStack poseStack = new PoseStack();
-
-		if (skyState.skybox == DimensionType.Skybox.END) {
-			skyRenderer.renderEndSky();
-			if (skyState.endFlashIntensity > 1.0E-5F) {
-				skyRenderer.renderEndFlash(
-						poseStack,
-						skyState.endFlashIntensity,
-						skyState.endFlashXAngle,
-						skyState.endFlashYAngle
-				);
-			}
-			return;
-		}
-
-		skyRenderer.renderSkyDisc(skyState.skyColor);
-		skyRenderer.renderSunriseAndSunset(poseStack, skyState.sunAngle, skyState.sunriseAndSunsetColor);
-		skyRenderer.renderSunMoonAndStars(
-				poseStack,
-				skyState.sunAngle,
-				skyState.moonAngle,
-				skyState.starAngle,
-				skyState.moonPhase,
-				skyState.rainBrightness,
-				skyState.starBrightness
-		);
-		if (skyState.shouldRenderDarkDisc) {
-			skyRenderer.renderDarkDisc();
-		}
-	}
-
-	private static void captureClouds(
-			CloudRenderer cloudRenderer,
-			RenderTarget target,
-			int cloudColor,
-			CloudStatus cloudStatus,
-			float cloudHeight,
-			Vec3 cameraPos,
-			long gameTime,
-			float partialTick
-	) {
-		cloudCaptureTarget = target;
-		try {
-			cloudRenderer.render(
-					cloudColor,
-					cloudStatus,
-					cloudHeight,
-					Minecraft.getInstance().options.cloudRange().get(),
-					cameraPos,
-					gameTime,
-					partialTick
-			);
-		} finally {
-			cloudCaptureTarget = null;
-		}
-	}
-
-	private static void renderSkyBoxes(LevelTerrainRenderContext context) {
-		currentDraw = null;
-
-		if (faces == null || !skyCapturedThisFrame) {
-			return;
-		}
-
-		Minecraft client = Minecraft.getInstance();
-		ClientLevel level = client.level;
-		if (level == null) {
-			return;
-		}
-
-		List<SkyBoxBlockEntity> visible = new ArrayList<>();
-		boolean anyFace = false;
-
-		for (SkyBoxBlockEntity skyBox : SkyBoxBlockEntity.getClientActive()) {
-			if (skyBox.getLevel() != level || skyBox.isRemoved()) {
-				continue;
-			}
-
-			boolean hasFace = false;
-			for (Direction direction : Direction.values()) {
-				if (skyBox.shouldRenderFace(direction)) {
-					hasFace = true;
-					anyFace = true;
-				}
-			}
-
-			if (hasFace) {
-				visible.add(skyBox);
+				addFace(out, face, x, y, z);
 			}
 		}
+		if (batch == null) return;
+		BUFFER.upload();
+		geometry = BUFFER.getExecuteInfo(batch);
+		if (geometry == null) return;
+		maskedDepth = target.getDepthTextureView();
+		transform = RenderSystem.getDynamicUniforms().writeTransform(RenderSystem.getModelViewMatrixCopy(), WHITE, ZERO, IDENTITY);
+		draw(target, MASK);
+	}
 
-		if (!anyFace) {
-			return;
+	private static void restore(RenderTarget target) {
+		if (geometry == null || maskedDepth == null || target.getDepthTextureView() != maskedDepth) return;
+		GpuTexture source = maskedDepth.texture();
+		int w = source.getWidth(0), h = source.getHeight(0);
+		if (snapshot == null || snapshot.getWidth(0) != w || snapshot.getHeight(0) != h || snapshot.getFormat() != source.getFormat()) {
+			closeSnapshot();
+			snapshot = RenderSystem.getDevice().createTexture("Sky box scene depth", GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING,
+					source.getFormat(), w, h, 1, 1);
+			snapshotView = RenderSystem.getDevice().createTextureView(snapshot);
 		}
+		RenderSystem.getDevice().createCommandEncoder().copyTextureToTexture(source, snapshot, 0, 0, 0, 0, 0, w, h);
+		draw(target, RESTORE);
+	}
 
-		VertexFormat format = PIPELINE.getVertexFormatBinding(0);
-		PrimitiveTopology topology = PIPELINE.getPrimitiveTopology();
+	private static void draw(RenderTarget target, RenderPipeline pipeline) {
+		try (var pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "Sky box depth",
+				target.getColorTextureView(), Optional.empty(), maskedDepth, OptionalDouble.empty())) {
+			pass.setPipeline(pipeline);
+			RenderSystem.bindDefaultUniforms(pass);
+			pass.setUniform("DynamicTransforms", transform);
+			if (pipeline == RESTORE) pass.bindTexture("SceneDepth", snapshotView, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+			pass.setVertexBuffer(0, geometry.vertexBuffer().slice());
+			pass.setIndexBuffer(geometry.indexBuffer(), geometry.indexType());
+			pass.drawIndexed(geometry.indexCount(), 1, geometry.firstIndex(), geometry.baseVertex(), 0);
+		}
+	}
 
-		currentDraw = VERTEX_BUFFER.appendDraw(
-				format,
-				topology,
-				topology == PrimitiveTopology.QUADS
-						? RenderSystem.getProjectionType().vertexSorting()
-						: null
-		);
-
-		Vec3 camera = context.levelState().cameraRenderState.pos;
-
-		VertexConsumer out = VERTEX_BUFFER.getVertexBuilder(currentDraw);
-
-		for (SkyBoxBlockEntity skyBox : visible) {
-			BlockPos pos = skyBox.getBlockPos();
-			for (Direction direction : Direction.values()) {
-				if (skyBox.shouldRenderFace(direction)) {
-					addFace(out, camera, pos, direction);
-				}
+	private static void addFace(VertexConsumer out, Direction face, float x, float y, float z) {
+		for (int i = 0; i < 4; i++) {
+			int u = (i == 1 || i == 2) ? 1 : 0, v = i >= 2 ? 1 : 0;
+			switch (face.getAxis()) {
+				case X -> out.addVertex(x + (face == Direction.EAST ? 1 : 0), y + u, z + v);
+				case Y -> out.addVertex(x + u, y + (face == Direction.UP ? 1 : 0), z + v);
+				case Z -> out.addVertex(x + u, y + v, z + (face == Direction.SOUTH ? 1 : 0));
 			}
 		}
-
-		VERTEX_BUFFER.upload();
-
-		StagedVertexBuffer.ExecuteInfo info = VERTEX_BUFFER.getExecuteInfo(currentDraw);
-		if (info != null) {
-			draw(info);
-		}
 	}
 
-	private static void draw(StagedVertexBuffer.ExecuteInfo info) {
-		RenderTarget target = Minecraft.getInstance().gameRenderer.mainRenderTarget();
-
-		GpuTextureView colorView = target.getColorTextureView();
-		GpuTextureView depthView = target.getDepthTextureView();
-		if (colorView == null || depthView == null) {
-			return;
-		}
-
-		try (RenderPass renderPass = RenderSystem.getDevice()
-				.createCommandEncoder()
-				.createRenderPass(
-						() -> "MoreThingsVanilla SkyBox",
-						colorView,
-						java.util.Optional.empty(),
-						depthView,
-						java.util.OptionalDouble.empty()
-				)) {
-
-			renderPass.setPipeline(PIPELINE);
-			RenderSystem.bindDefaultUniforms(renderPass);
-
-			GpuBufferSlice dynamicTransforms = RenderSystem.getDynamicUniforms().writeTransform(
-					RenderSystem.getModelViewMatrixCopy(),
-					WHITE,
-					ZERO,
-					IDENTITY_TEXTURE_MATRIX
-			);
-			renderPass.setUniform("DynamicTransforms", dynamicTransforms);
-
-			bindFaceTexture(renderPass, "Sampler0", FACE_POS_X);
-			bindFaceTexture(renderPass, "Sampler1", FACE_NEG_X);
-			bindFaceTexture(renderPass, "Sampler2", FACE_POS_Y);
-			bindFaceTexture(renderPass, "Sampler3", FACE_NEG_Y);
-			bindFaceTexture(renderPass, "Sampler4", FACE_POS_Z);
-			bindFaceTexture(renderPass, "Sampler5", FACE_NEG_Z);
-
-			renderPass.setVertexBuffer(0, info.vertexBuffer().slice());
-			renderPass.setIndexBuffer(info.indexBuffer(), info.indexType());
-			renderPass.drawIndexed(
-					info.indexCount(),
-					1,
-					info.firstIndex(),
-					info.baseVertex(),
-					0
-			);
-		}
-	}
-
-	private static void bindFaceTexture(RenderPass renderPass, String samplerName, int face) {
-		renderPass.bindTexture(samplerName, faces[face].getColorTextureView(), faceSampler);
-	}
-
-	/** 输出相对相机的位置，同时用于几何投影和天空采样。 */
-	private static void addFace(VertexConsumer out, Vec3 camera, BlockPos pos, Direction direction) {
-		int index = direction.ordinal();
-		Vector3f normal = FACE_NORMALS[index];
-		Vector3f tangent = FACE_TANGENTS[index];
-		Vector3f bitangent = FACE_BITANGENTS[index];
-
-		float centerX = (float) (pos.getX() + 0.5 - camera.x);
-		float centerY = (float) (pos.getY() + 0.5 - camera.y);
-		float centerZ = (float) (pos.getZ() + 0.5 - camera.z);
-
-		for (int corner = 0; corner < 4; corner++) {
-			float u = (corner == 1 || corner == 2) ? 1.0F : 0.0F;
-			float v = corner >= 2 ? 1.0F : 0.0F;
-
-			float su = u * 2.0F - 1.0F;
-			float sv = v * 2.0F - 1.0F;
-
-			// 面中心 + 0.5 法线 + 切线偏移（半格范围）。
-			float x = centerX + normal.x * 0.5F + tangent.x * (su * 0.5F) + bitangent.x * (sv * 0.5F);
-			float y = centerY + normal.y * 0.5F + tangent.y * (su * 0.5F) + bitangent.y * (sv * 0.5F);
-			float z = centerZ + normal.z * 0.5F + tangent.z * (su * 0.5F) + bitangent.z * (sv * 0.5F);
-
-			out.addVertex(x, y, z);
-		}
-	}
-
-	private static void setFaceAxes(Direction direction, Vector3f normal, Vector3f tangent, Vector3f bitangent) {
-		int index = direction.ordinal();
-		FACE_NORMALS[index] = normal;
-		FACE_TANGENTS[index] = tangent;
-		FACE_BITANGENTS[index] = bitangent;
-	}
-
-	public static void close() {
-		cloudCaptureTarget = null;
-		skyCapturedThisFrame = false;
-
-		if (faces != null) {
-			for (TextureTarget face : faces) {
-				face.destroyBuffers();
-			}
-			faces = null;
-		}
-
-		if (projectionBuffer != null) {
-			projectionBuffer.close();
-			projectionBuffer = null;
-		}
-
-		faceSampler = null;
-		VERTEX_BUFFER.close();
+	private static void closeSnapshot() {
+		if (snapshotView != null) snapshotView.close();
+		if (snapshot != null) snapshot.close();
+		snapshotView = null;
+		snapshot = null;
 	}
 }
